@@ -1,98 +1,37 @@
-# Admin CMS Portal Frontend (v2)
+# 🛡️ KTCN Admin Portal - Trang Quản Trị Khoa Tài Chính Ngân Hàng
 
-Dự án Frontend quản trị hệ thống (Admin CMS Portal) được phát triển bằng **React 19**, **TypeScript** và build tool **Vite**, sử dụng mô hình thiết kế chia theo tính năng (Feature-based Architecture) giúp dễ dàng mở rộng và bảo trì.
+![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-6.x-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
 
----
-
-## 🛠️ Công nghệ sử dụng (Tech Stack)
-
-### Core
-*   **React 19** (Sử dụng các hook mới và tối ưu hóa hiệu năng)
-*   **TypeScript** (Đảm bảo type-safe chặt chẽ cho toàn dự án)
-*   **Vite 8** (Build tool cực nhanh, hỗ trợ Hot Module Replacement - HMR)
-
-### Styling & UI
-*   **Tailwind CSS v4** (Sử dụng trình biên dịch mới `@tailwindcss/vite` tối ưu tốc độ)
-*   **Radix UI** (Thư viện UI Unstyled accessible)
-*   **Lucide React** (Bộ icons vector đa dạng)
-*   **Sonner** (Thư viện hiển thị toast thông báo mượt mà)
-
-### Quản lý Trạng thái & Dữ liệu
-*   **TanStack React Query v5** (Đồng bộ, cache và quản lý state từ API)
-*   **Zustand v5** (Quản lý global state cực nhẹ và hiệu quả)
-*   **Axios** (HTTP Client cấu hình sẵn interceptors tự động refresh token)
-
-### Forms & Drag-Drop
-*   **React Hook Form & Zod** (Quản lý form và validate dữ liệu chặt chẽ)
-*   **@dnd-kit (Core, Sortable)** (Xử lý kéo thả phân cấp mượt mà cho Menu và Danh mục)
-*   **CKEditor 5** (Trình soạn thảo văn bản giàu tính năng cho bài viết)
+Hệ thống Dashboard quản trị nội dung (CMS) dành cho Ban quản lý **Khoa Tài Chính Ngân Hàng**. Cho phép quản lý tin tức, bài viết, banner, thông báo, giảng viên và biểu mẫu dịch vụ sinh viên.
 
 ---
 
-## 📂 Cấu trúc thư mục (Folder Structure)
+## ✨ Tính Năng Nổi Bật
 
-Thư mục `src` được tổ chức như sau:
-
-```text
-src/
-├── app/                  # Cấu hình global của ứng dụng
-│   ├── layouts/          # Layout giao diện (AdminLayout, AuthLayout)
-│   ├── providers/        # React Providers (QueryClientProvider, AuthProvider)
-│   ├── routes/           # Định tuyến ứng dụng (React Router v8)
-│   └── stores/           # Global store (Zustand)
-├── features/             # Các module tính năng độc lập
-│   ├── dashboard/        # Bảng điều khiển thống kê tổng quan
-│   ├── auth/             # Đăng nhập, đăng xuất, đổi mật khẩu
-│   ├── users/            # Quản lý thành viên, nhật ký hoạt động, thiết bị đăng nhập
-│   ├── roles/            # Quản lý vai trò (RBAC)
-│   ├── categories/       # Quản lý danh mục kéo thả phân cấp (dnd-kit)
-│   ├── menus/            # Quản lý menu kéo thả phân cấp đa cấp (dnd-kit)
-│   ├── audit-logs/       # Nhật ký thao tác hệ thống (Audit log)
-│   └── ai-settings/      # Cấu hình AI model, budget limits & logs
-├── services/             # Cấu hình kết nối hệ thống
-│   └── http/             # Cấu hình Axios Client (Auto refresh token, interceptors)
-├── shared/               # Thành phần dùng chung toàn bộ dự án
-│   ├── components/       # Các UI Component dùng chung (Button, Table, Form, Dialog...)
-│   ├── hooks/            # Custom hooks dùng chung
-│   └── utils/            # Các hàm tiện ích (Format date, cn helper...)
-└── main.tsx              # Điểm khởi chạy ứng dụng
-```
+- 📊 **Dashboard Thống Kê:** Tổng quan lượt truy cập, bài viết mới, yêu cầu dịch vụ sinh viên.
+- 📝 **Quản Lý Bài Viết & Banner:** Trình biên soạn WYSIWYG, tải ảnh lên, sắp xếp banner kéo thả (`@dnd-kit`).
+- 👥 **Quản Lý Giảng Viên & Nhân Sự:** Cập nhật thông tin cán bộ, bộ môn, lịch công tác.
+- 📁 **Quản Lý Dịch Vụ & Tài Liệu:** Upload biểu mẫu PDF/Word cho sinh viên tải về.
+- 🔑 **Phân Quyền & Bảo Mật:** Authentication JWT, phân quyền Admin / Editor / Staff.
 
 ---
 
-## 🚀 Hướng dẫn cài đặt và chạy ứng dụng
+## 🚀 Hướng Dẫn Cài Đặt
 
-### 1. Yêu cầu hệ thống
-*   **Node.js**: Phiên bản 18 trở lên (khuyến nghị v20+)
-*   **pnpm**: Trình quản lý package (khuyến nghị sử dụng pnpm để đồng bộ lockfile)
-
-### 2. Cài đặt các thư viện phụ thuộc
-Di chuyển vào thư mục dự án và chạy lệnh:
 ```bash
-pnpm install
+git clone https://github.com/nguyenhuynhdt37/ktcn-admin-portal.git
+cd ktcn-admin-portal
+npm install
+npm run dev
 ```
 
-### 3. Cấu hình biến môi trường
-Tạo file `.env` tại thư mục gốc của dự án (sử dụng mẫu từ `.env.example`):
-```env
-VITE_API_URL=http://localhost:8000/api/v1
-```
+Mở trình duyệt tại: `http://localhost:5173`
 
-### 4. Chạy môi trường phát triển (Development)
-Khởi chạy local server với HMR:
-```bash
-pnpm dev
-```
-Ứng dụng sẽ chạy tại địa chỉ mặc định: [http://localhost:5173](http://localhost:5173).
+---
 
-### 5. Build và kiểm tra lỗi code
+## 👨‍💻 Tác Giả
 
-*   **Kiểm tra lỗi linter:**
-    ```bash
-    pnpm lint
-    ```
-*   **Đóng gói sản phẩm (Production Build):**
-    ```bash
-    pnpm build
-    ```
-    Mã nguồn sau khi đóng gói sẽ nằm trong thư mục `dist`.
+**Nguyễn Xuân Huỳnh** — [GitHub Profile](https://github.com/nguyenhuynhdt37)
