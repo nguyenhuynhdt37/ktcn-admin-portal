@@ -1,8 +1,8 @@
 # Step 1: Build stage
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.11.0
 
 WORKDIR /app
 
