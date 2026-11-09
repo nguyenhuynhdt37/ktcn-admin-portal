@@ -116,7 +116,7 @@ export function useArticlePreview() {
       ogDescription:
         displayData.og_description ||
         displayData.excerpt ||
-        'Đọc chi tiết bài viết trên website Trường Kỹ thuật và Công nghệ - Đại học Vinh.',
+        'Đọc chi tiết bài viết trên website Trường Kỹ thuật và Công nghệ - Trường Đại Học Vinh.',
     }
   }, [displayData])
 

@@ -108,10 +108,10 @@ export function LoginPage() {
       <CardHeader className="space-y-1 pb-4">
         <div className="flex flex-col items-center justify-center text-center">
           <div className="flex mb-3">
-            <img src={logoDhVinh} alt="Đại học Vinh Logo" className="h-16 w-16 object-contain" />
+            <img src={logoDhVinh} alt=" Trường Đại Học Vinh Logo" className="h-16 w-16 object-contain" />
           </div>
           <CardTitle className="text-xl font-bold tracking-tight text-foreground uppercase">
-            Đại học Vinh
+            Trường Đại Học Vinh
           </CardTitle>
           <CardDescription className="text-xs font-semibold text-primary mt-1 tracking-wider uppercase">
             TRƯỜNG KỸ THUẬT VÀ CÔNG NGHỆ

@@ -238,7 +238,7 @@ function SidebarContent({ user, onClose }: SidebarContentProps) {
           <img src={logoDhVinh} alt="Đại học Vinh Logo" className="h-9 w-9 object-contain" />
           <div className="flex flex-col text-left">
             <span className="text-[13px] font-bold tracking-tight text-foreground leading-tight">
-              ĐẠI HỌC VINH
+              TRƯỜNG ĐẠI HỌC VINH
             </span>
             <span className="text-[9px] text-muted-foreground font-mono mt-0.5 leading-none">
               CMS Portal

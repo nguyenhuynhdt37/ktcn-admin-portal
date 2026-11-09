@@ -341,10 +341,10 @@ export function CommandPalette({
         {/* Brand Header */}
         <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/20">
           <div className="flex items-center gap-2.5">
-            <img src={logoDhVinh} alt="Đại học Vinh Logo" className="h-6 w-6 object-contain" />
+            <img src={logoDhVinh} alt="Trường Đại Học Vinh Logo" className="h-6 w-6 object-contain" />
             <div className="flex flex-col text-left">
               <span className="text-[11px] font-bold tracking-tight text-foreground leading-tight">
-                ĐẠI HỌC VINH
+                Trường Đại Học Vinh
               </span>
               <span className="text-[8px] text-muted-foreground font-mono leading-none">
                 CMS Search Portal

@@ -44,7 +44,7 @@ export function CategorySEOSection({
 }: CategorySEOSectionProps) {
   const [isOpen, setIsOpen] = useState(false)
   
-  const fallbackTitle = seoResolved?.seo_title || `${name || 'Tên danh mục'} | Trường Kỹ thuật và Công nghệ - Đại học Vinh`
+  const fallbackTitle = seoResolved?.seo_title || `${name || 'Tên danh mục'} | Trường Kỹ thuật và Công nghệ - Trường Đại Học Vinh`
   const fallbackDesc = seoResolved?.seo_description || (description ? description.slice(0, 155) : "Mô tả mặc định của website...")
 
   return (
