@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sparkles, Loader2, ArrowRight, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { articleService } from '../../services/articleService'
+import { sanitizeRichHtml } from '@/shared/utils/security'
 
 interface AiRewriteModalProps {
   isOpen: boolean
@@ -128,7 +129,7 @@ export function AiRewriteModal({
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Nội dung ban đầu</span>
               <div 
                 className="flex-1 overflow-y-auto pr-1 text-xs leading-relaxed space-y-2 max-h-[350px] select-all prose dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: currentContent }}
+                dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(currentContent) }}
               />
             </div>
 
@@ -139,7 +140,7 @@ export function AiRewriteModal({
               </span>
               <div 
                 className="flex-1 overflow-y-auto pr-1 text-xs leading-relaxed space-y-2 max-h-[350px] select-all prose dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: rewrittenContent }}
+                dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(rewrittenContent) }}
               />
             </div>
           </div>

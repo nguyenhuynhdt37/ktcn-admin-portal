@@ -22,6 +22,7 @@ import { Badge } from '@/shared/components/ui/badge'
 import { teacherService } from '../services/teacherService'
 import { getMediaUrl } from '@/features/articles/utils/media'
 import { cn } from '@/lib/utils'
+import { sanitizeRichHtml } from '@/shared/utils/security'
 
 export default function TeacherDetailPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -223,7 +224,7 @@ export default function TeacherDetailPage() {
               {displayData?.biography ? (
                 <div
                   className="prose prose-sm dark:prose-invert max-w-none text-xs leading-relaxed text-slate-700 dark:text-slate-300"
-                  dangerouslySetInnerHTML={{ __html: displayData.biography }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(displayData.biography) }}
                 />
               ) : (
                 <p className="text-xs text-muted-foreground italic text-center py-10 border border-dashed rounded-lg bg-slate-50/30">

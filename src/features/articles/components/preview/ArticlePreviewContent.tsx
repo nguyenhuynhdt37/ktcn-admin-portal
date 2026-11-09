@@ -2,6 +2,7 @@ import { Badge } from '@/shared/components/ui/badge'
 import { Calendar, User, Eye, Tag, Clock, BookOpen } from 'lucide-react'
 import dayjs from 'dayjs'
 import { cn } from '@/lib/utils'
+import { sanitizeRichHtml } from '@/shared/utils/security'
 import type { Article } from '../types/articles.types'
 import type { DisplayData, PreviewLang } from '../hooks/useArticlePreview'
 
@@ -142,7 +143,7 @@ export default function ArticlePreviewContent({
         {/* Article Content */}
         <div className="article-html-view text-left">
           {displayData.content ? (
-            <div dangerouslySetInnerHTML={{ __html: displayData.content }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(displayData.content) }} />
           ) : (
             <div className="py-16 text-center text-muted-foreground border border-dashed rounded-lg">
               <p className="italic text-sm">Nội dung bài viết rỗng.</p>
