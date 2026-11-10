@@ -1,11 +1,11 @@
-# 🛡️ KTCN Admin Portal - Trang Quản Trị Trường Kỹ Thuật và Công Nghệ - Đại Học Vinh
+# 🛡️ KTCN Admin Portal - Trang Quản Trị Trường Kỹ Thuật và Công Nghệ - Trường Đại Học Vinh
 
 ![React 18](https://img.shields.io/badge/React-18.x-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Vite 6](https://img.shields.io/badge/Vite-6.x-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![Tailwind CSS v4](https://img.shields.io/badge/TailwindCSS-v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
 
-Bảng điều khiển quản trị (CMS) dành cho Ban quản lý **Trường Kỹ Thuật và Công Nghệ - Đại Học Vinh**. Cho phép biên tập bài viết, quản lý banner quảng bá, cập nhật hồ sơ giảng viên và xử lý biểu mẫu thủ tục sinh viên.
+Bảng điều khiển quản trị (CMS) dành cho Ban quản lý **Trường Kỹ Thuật và Công Nghệ - Trường Đại Học Vinh**. Cho phép biên tập bài viết, quản lý banner quảng bá, cập nhật hồ sơ giảng viên và xử lý biểu mẫu thủ tục sinh viên.
 
 ---
 

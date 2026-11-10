@@ -59,7 +59,7 @@ Dưới đây là chi tiết cụ thể về các hàm, components, interfaces v
 #### 📄 [constants.ts](file:///Users/huynh/codes/KTCN/v2/src/features/articles/constants.ts)
 *   **Mục đích:** Lưu trữ các giá trị cấu hình cố định được sử dụng xuyên suốt feature.
 *   **Nội dung bên trong:**
-    *   `SEO_CONFIG`: Khai báo hằng số `SUFFIX` (ví dụ: ` - Khoa Công nghệ & Công nghệ - Đại học Vinh` để tự động nối vào cuối tiêu đề SEO khi hiển thị) và cấu hình `LIMITS` (độ dài tối đa của Title là 60 ký tự, Description là 160 ký tự) phục vụ đếm số từ và thanh progress đo lường chuẩn SEO.
+    *   `SEO_CONFIG`: Khai báo hằng số `SUFFIX` (ví dụ: ` - Khoa Công nghệ & Công nghệ - TRƯỜNG Đại học Vinh` để tự động nối vào cuối tiêu đề SEO khi hiển thị) và cấu hình `LIMITS` (độ dài tối đa của Title là 60 ký tự, Description là 160 ký tự) phục vụ đếm số từ và thanh progress đo lường chuẩn SEO.
 
 #### 📄 [types/articles.types.ts](file:///Users/huynh/codes/KTCN/v2/src/features/articles/types/articles.types.ts)
 *   **Mục đích:** Khai báo toàn bộ các TypeScript interface để đảm bảo tính chặt chẽ về kiểu dữ liệu (Type-Safety) trong toàn feature.
