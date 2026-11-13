@@ -327,12 +327,13 @@ export function TeachersPage() {
 
   // Handlers
   const handleEditClick = useCallback((id: string) => {
-    navigate(`/teachers/${id}/edit`)
-  }, [navigate])
+    // Gửi kèm bộ lọc đang xem để form quay về đúng danh sách này sau khi lưu
+    navigate(`/teachers/${id}/edit`, { state: { listSearch: searchParams.toString() } })
+  }, [navigate, searchParams])
 
   const handleAddClick = useCallback(() => {
-    navigate('/teachers/create')
-  }, [navigate])
+    navigate('/teachers/create', { state: { listSearch: searchParams.toString() } })
+  }, [navigate, searchParams])
 
   const handleViewClick = useCallback((slug: string) => {
     navigate(`/teachers/${slug}`)

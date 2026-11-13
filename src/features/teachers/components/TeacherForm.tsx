@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import {
   Form,
   FormControl,
@@ -351,6 +351,21 @@ function TeacherFormInner({
 }: TeacherFormInnerProps) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Quay về đúng danh sách đang xem trước đó (giữ bộ lọc, trang, sắp xếp). Nếu mở form
+  // bằng đường dẫn trực tiếp thì về danh sách của đơn vị mà hồ sơ này thuộc về.
+  const backToList = (departmentId?: string | null) => {
+    const listSearch = (location.state as { listSearch?: string } | null)?.listSearch
+    if (listSearch) {
+      navigate(`/teachers?${listSearch}`)
+    } else if (departmentId) {
+      navigate(`/teachers?department_id=${encodeURIComponent(departmentId)}`)
+    } else {
+      navigate('/teachers')
+    }
+  }
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -499,11 +514,11 @@ function TeacherFormInner({
         return teacherService.create(payload)
       }
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       toast.success(isEditMode ? 'Cập nhật hồ sơ giảng viên thành công!' : 'Thêm hồ sơ giảng viên mới thành công!')
       queryClient.invalidateQueries({ queryKey: ['teachers'] })
       queryClient.invalidateQueries({ queryKey: ['teachers-stats'] })
-      navigate('/teachers')
+      backToList(saved?.department_id)
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (err: any) => {
@@ -564,7 +579,7 @@ function TeacherFormInner({
       <div className="flex items-center justify-between border-b pb-4">
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => navigate('/teachers')}
+            onClick={() => backToList(initialValues.department_id)}
             variant="ghost"
             size="icon"
             className="h-9 w-9 rounded-full cursor-pointer hover:bg-muted"
