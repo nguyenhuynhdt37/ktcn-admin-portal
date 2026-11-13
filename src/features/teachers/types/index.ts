@@ -91,6 +91,9 @@ export interface UpdateStaffStatusPayload {
   is_active: boolean
 }
 
+/** Hướng đổi vị trí hiển thị của giảng viên trong đơn vị */
+export type StaffMoveDirection = 'up' | 'down' | 'top' | 'bottom'
+
 export interface StaffListParams {
   page?: number
   page_size?: number

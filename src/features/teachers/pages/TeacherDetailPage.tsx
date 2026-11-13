@@ -166,7 +166,7 @@ export default function TeacherDetailPage() {
                   }`}>
                     {teacher.is_active ? 'Đang hoạt động' : 'Không hoạt động'}
                   </Badge>
-                  <span className="text-[10px] text-muted-foreground">Thứ tự hiển thị: <strong className="font-mono text-foreground">{teacher.sort_order}</strong></span>
+                  <span className="text-[10px] text-muted-foreground">Vị trí hiển thị: <strong className="font-mono text-foreground">{teacher.sort_order + 1}</strong></span>
                 </div>
               </div>
             </div>

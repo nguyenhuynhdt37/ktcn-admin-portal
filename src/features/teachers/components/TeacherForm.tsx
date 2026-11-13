@@ -85,9 +85,10 @@ const teacherFormSchema = z.object({
     .nullable()
     .optional()
     .or(z.literal('')),
+  // Trên form là vị trí tính từ 1 (1 = đứng đầu đơn vị); backend lưu từ 0.
   sort_order: z.preprocess(
-    (val) => (val === '' ? 0 : Number(val)),
-    z.number().min(0, { message: 'Thứ tự sắp xếp phải lớn hơn hoặc bằng 0' })
+    (val) => (val === '' ? 1 : Number(val)),
+    z.number().int({ message: 'Vị trí hiển thị phải là số nguyên' }).min(1, { message: 'Vị trí hiển thị phải từ 1 trở lên' })
   ),
   is_active: z.boolean().default(true),
   translations: z.object({
@@ -118,7 +119,7 @@ function mapBackendToForm(detail: any): TeacherFormValues {
     phone: detail.phone || '',
     website: detail.website || '',
     office: detail.office || '',
-    sort_order: detail.sort_order || 0,
+    sort_order: (detail.sort_order || 0) + 1,
     is_active: detail.is_active !== undefined ? detail.is_active : true,
     translations: {
       vi: {
@@ -147,7 +148,7 @@ function getCreateDefaultValues(): TeacherFormValues {
     phone: '',
     website: '',
     office: '',
-    sort_order: 0,
+    sort_order: 1,
     is_active: true,
     translations: {
       vi: { biography: '', research_interests: '' },
@@ -161,10 +162,16 @@ export function TeacherForm({ teacherId }: TeacherFormProps) {
   const isEditMode = !!teacherId
 
   // 1. Fetch chi tiết giảng viên nếu ở chế độ Edit
-  const { data: teacherDetail, isLoading: isLoadingDetail } = useQuery({
+  // Form chỉ nạp giá trị một lần lúc mở, nên phải chờ dữ liệu mới nhất: vị trí hiển thị
+  // của người này có thể đã đổi khi người khác trong đơn vị được sắp xếp lại.
+  const { data: teacherDetail, isFetching: isLoadingDetail } = useQuery({
     queryKey: ['teachers', teacherId],
     queryFn: () => teacherService.getDetail(teacherId!),
     enabled: isEditMode,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 
   // 2. Fetch danh sách bộ môn
@@ -318,7 +325,7 @@ function mapFormToPayload(values: TeacherFormValues) {
     phone: values.phone ? values.phone.trim() : null,
     website: values.website ? values.website.trim() : null,
     office: values.office ? values.office.trim() : null,
-    sort_order: values.sort_order,
+    sort_order: values.sort_order - 1,
     is_active: values.is_active,
     translations: {
       vi: {
@@ -1052,10 +1059,13 @@ function TeacherFormInner({
                   name="sort_order"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-semibold">Thứ tự hiển thị</FormLabel>
+                      <FormLabel className="text-xs font-semibold">Vị trí hiển thị</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="0" className="text-xs focus-visible:ring-primary/20 h-9 bg-background" {...field} />
+                        <Input type="number" min={1} step={1} placeholder="1" className="text-xs focus-visible:ring-primary/20 h-9 bg-background" {...field} />
                       </FormControl>
+                      <FormDescription className="text-[10px] leading-relaxed text-muted-foreground/80">
+                        Vị trí trong đơn vị, 1 là đứng đầu. Những người phía sau tự động lùi xuống.
+                      </FormDescription>
                       <FormMessage className="text-[10px]" />
                     </FormItem>
                   )}

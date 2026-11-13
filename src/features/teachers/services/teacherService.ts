@@ -4,6 +4,7 @@ import type {
   CreateStaffPayload,
   UpdateStaffPayload,
   UpdateStaffStatusPayload,
+  StaffMoveDirection,
   StaffListParams,
   StaffPagination,
   StaffStats,
@@ -60,6 +61,12 @@ export const teacherService = {
   /** Cập nhật nhanh trạng thái hoạt động */
   updateStatus: async (id: string, payload: UpdateStaffStatusPayload): Promise<Staff> => {
     const response = await httpClient.put<Staff>(`/admin/staffs/${id}`, payload)
+    return response.data
+  },
+
+  /** Đổi vị trí hiển thị của giảng viên trong đơn vị */
+  move: async (id: string, direction: StaffMoveDirection): Promise<Staff> => {
+    const response = await httpClient.post<Staff>(`/admin/staffs/${id}/move`, { direction })
     return response.data
   },
 

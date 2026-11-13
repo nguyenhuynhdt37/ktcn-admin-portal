@@ -6,7 +6,10 @@ import {
   Phone,
   Globe,
   Eye,
-  ArrowUpDown
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ChevronsUp
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
@@ -22,13 +25,20 @@ import {
 } from '@/shared/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { getMediaUrl } from '@/features/articles/utils/media'
-import type { Staff } from '../types'
+import type { Staff, StaffMoveDirection } from '../types'
 
 interface TeacherColumnsProps {
   onEdit: (id: string) => void
   onDelete: (id: string) => void
   onToggleStatus: (id: string, active: boolean) => void
   onView: (slug: string) => void
+  onMove: (id: string, direction: StaffMoveDirection) => void
+  /** Chỉ đổi vị trí được khi bảng đang hiện đúng thứ tự hiển thị của một đơn vị */
+  canReorder: boolean
+  isMoving: boolean
+  isFirstPage: boolean
+  isLastPage: boolean
+  rowCount: number
 }
 
 export const getTeacherColumns = ({
@@ -36,6 +46,12 @@ export const getTeacherColumns = ({
   onDelete,
   onToggleStatus,
   onView,
+  onMove,
+  canReorder,
+  isMoving,
+  isFirstPage,
+  isLastPage,
+  rowCount,
 }: TeacherColumnsProps): ColumnDef<Staff>[] => [
   {
     id: 'select',
@@ -205,11 +221,43 @@ export const getTeacherColumns = ({
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         className="-ml-4 cursor-pointer"
       >
-        Sắp xếp
+        Vị trí hiển thị
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <span className="font-mono text-xs">{row.original.sort_order}</span>,
+    cell: ({ row }) => {
+      const item = row.original
+      const isFirst = isFirstPage && row.index === 0
+      const isLast = isLastPage && row.index === rowCount - 1
+      const moveButton = (
+        direction: StaffMoveDirection,
+        label: string,
+        disabled: boolean,
+        Icon: typeof ArrowUp,
+      ) => (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 cursor-pointer text-muted-foreground hover:text-foreground"
+          disabled={!canReorder || isMoving || disabled}
+          title={canReorder ? label : 'Bỏ tìm kiếm, bộ lọc và sắp theo thứ tự hiển thị để đổi vị trí'}
+          aria-label={`${label}: ${item.full_name}`}
+          onClick={() => onMove(item.id, direction)}
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </Button>
+      )
+
+      return (
+        <div className="flex items-center gap-0.5">
+          <span className="font-mono text-xs w-6">{item.sort_order + 1}</span>
+          {moveButton('top', 'Đưa lên đầu', isFirst, ChevronsUp)}
+          {moveButton('up', 'Lên một vị trí', isFirst, ArrowUp)}
+          {moveButton('down', 'Xuống một vị trí', isLast, ArrowDown)}
+        </div>
+      )
+    },
   },
   {
     accessorKey: 'is_active',

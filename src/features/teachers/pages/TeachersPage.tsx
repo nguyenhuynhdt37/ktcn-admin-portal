@@ -32,6 +32,7 @@ import { DataTable } from '@/shared/components/DataTable'
 import { toast } from 'sonner'
 import { teacherService } from '../services/teacherService'
 import { getTeacherColumns } from '../components/teacherColumns'
+import type { StaffMoveDirection } from '../types'
 import { departmentService } from '@/features/departments/services/departmentService'
 import { positionService } from '@/features/positions/services/positionService'
 
@@ -259,6 +260,21 @@ export function TeachersPage() {
     },
   })
 
+  // 5b. Mutation: Đổi vị trí hiển thị trong đơn vị
+  const moveMutation = useMutation({
+    mutationFn: ({ id, direction }: { id: string; direction: StaffMoveDirection }) =>
+      teacherService.move(id, direction),
+    onSuccess: () => {
+      toast.success('Đã cập nhật vị trí hiển thị')
+      queryClient.invalidateQueries({ queryKey: ['teachers'] })
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error?.message || 'Không thể đổi vị trí hiển thị. Vui lòng thử lại.'
+      toast.error(msg)
+    },
+  })
+
   // 6. Mutation: Soft delete teacher
   const deleteMutation = useMutation({
     mutationFn: teacherService.delete,
@@ -360,13 +376,36 @@ export function TeachersPage() {
     ]
   }, [positions])
 
+  const { mutate: moveStaff, isPending: isMoving } = moveMutation
+  const handleMove = useCallback((id: string, direction: StaffMoveDirection) => {
+    moveStaff({ id, direction })
+  }, [moveStaff])
+
+  // Lên/xuống chỉ có nghĩa khi bảng đang hiện đầy đủ một đơn vị theo đúng thứ tự hiển thị
+  const canReorder =
+    sortBy === 'sort_order' &&
+    sortDir === 'asc' &&
+    !debouncedSearchQuery.trim() &&
+    activeDeptId !== '' &&
+    activeDeptId !== 'all' &&
+    selectedPosId === 'all' &&
+    selectedTitle === 'all' &&
+    selectedDegree === 'all' &&
+    selectedStatus === 'all'
+
   // Columns definition
   const columns = useMemo(() => getTeacherColumns({
     onEdit: handleEditClick,
     onDelete: handleDelete,
     onToggleStatus: handleToggleStatus,
     onView: handleViewClick,
-  }), [handleEditClick, handleDelete, handleToggleStatus, handleViewClick])
+    onMove: handleMove,
+    canReorder,
+    isMoving,
+    isFirstPage: pageIndex === 0,
+    isLastPage: pageIndex + 1 >= (staffData.total_pages || 1),
+    rowCount: staffData.items.length,
+  }), [handleEditClick, handleDelete, handleToggleStatus, handleViewClick, handleMove, canReorder, isMoving, pageIndex, staffData.total_pages, staffData.items.length])
 
   return (
     <div className="space-y-6">
