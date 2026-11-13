@@ -51,9 +51,9 @@ const teacherFormSchema = z.object({
     .trim()
     .min(1, { message: 'Họ và tên là bắt buộc' })
     .max(150, { message: 'Họ và tên không vượt quá 150 ký tự' }),
+  // Không bắt buộc: hồ sơ nhập hàng loạt chưa có tên tiếng Anh vẫn phải sửa và lưu được.
   english_name: z.string()
     .trim()
-    .min(1, { message: 'Tên tiếng Anh là bắt buộc' })
     .max(150, { message: 'Tên tiếng Anh không vượt quá 150 ký tự' }),
   avatar_object_key: z.string().min(1, { message: 'Vui lòng tải lên ảnh đại diện' }),
   email: z.string()
@@ -319,7 +319,7 @@ function mapFormToPayload(values: TeacherFormValues) {
     academic_title_id: values.academic_title_id || null,
     degree_id: values.degree_id || null,
     full_name: values.full_name.trim(),
-    english_name: values.english_name.trim(),
+    english_name: values.english_name.trim() || null,
     avatar_object_key: values.avatar_object_key,
     email: values.email ? values.email.trim() : null,
     phone: values.phone ? values.phone.trim() : null,
@@ -543,6 +543,21 @@ function TeacherFormInner({
     saveMutation.mutate(data)
   }
 
+  // Lỗi có thể nằm ở phần form đang khuất màn hình, nên phải báo rõ là chưa lưu và vì sao.
+  const onInvalid = (errors: unknown) => {
+    const firstMessage = (node: unknown): string | null => {
+      if (!node || typeof node !== 'object') return null
+      const message = (node as { message?: unknown }).message
+      if (typeof message === 'string' && message) return message
+      for (const child of Object.values(node)) {
+        const found = firstMessage(child)
+        if (found) return found
+      }
+      return null
+    }
+    toast.error(`Chưa lưu được hồ sơ: ${firstMessage(errors) || 'vui lòng kiểm tra lại các trường báo đỏ.'}`)
+  }
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto text-left">
       {/* Action Header */}
@@ -567,7 +582,7 @@ function TeacherFormInner({
           </div>
         </div>
         <Button
-          onClick={form.handleSubmit(onSubmit)}
+          onClick={form.handleSubmit(onSubmit, onInvalid)}
           disabled={saveMutation.isPending}
           className="cursor-pointer text-xs h-9 font-semibold gap-1.5 shadow-sm"
         >
@@ -581,7 +596,7 @@ function TeacherFormInner({
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
           {/* Left Column: Basic & i18n details (8/12) */}
           <div className="lg:col-span-8 space-y-6">
@@ -616,7 +631,7 @@ function TeacherFormInner({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center justify-between">
-                          <FormLabel className="text-xs font-semibold">Tên tiếng Anh (Không dấu) <span className="text-destructive">*</span></FormLabel>
+                          <FormLabel className="text-xs font-semibold">Tên tiếng Anh (Không dấu)</FormLabel>
                           <Button
                             type="button"
                             variant="ghost"
