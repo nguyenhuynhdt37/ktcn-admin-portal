@@ -29,6 +29,7 @@ import {
   ChevronRight,
   Loader2,
   FileEdit,
+  Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { httpClient } from '@/services/http/client'
@@ -151,6 +152,10 @@ export function CommandPalette({
     {
       id: 'profile', title: 'Hồ sơ cá nhân', subtitle: 'Thông tin tài khoản của bạn',
       icon: UserCircle, category: 'pages', action: () => go('/profile'),
+    },
+    {
+      id: 'settings', title: 'Cấu hình giao diện & Footer', subtitle: 'Logo, liên hệ, liên kết chân trang và bản quyền',
+      icon: Settings, category: 'pages', action: () => go('/settings'),
     },
   ]
 

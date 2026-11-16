@@ -199,6 +199,7 @@ function SidebarContent({ user, onClose }: SidebarContentProps) {
     { label: 'AI Management Hub', href: '/languages/ai-hub', icon: BrainCircuit, permission: null },
     { label: 'Cấu hình Embedding', href: '/languages/embedding', icon: Fingerprint, permission: null },
     { label: 'Ngôn ngữ', href: '/languages', icon: Languages, permission: null },
+    { label: 'Cấu hình giao diện', href: '/settings', icon: Settings, permission: null },
     { label: 'Thành viên', href: '/users', icon: Users, permission: null },
     { label: 'Tính năng hệ thống', href: '/features', icon: Layers, permission: null },
     { label: 'Nhật ký hoạt động', href: '/audit-logs', icon: FileSpreadsheet, permission: 'menu.audit' },
