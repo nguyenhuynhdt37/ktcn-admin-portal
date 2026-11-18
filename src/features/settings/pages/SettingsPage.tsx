@@ -339,11 +339,11 @@ function LinkListEditor({ title, description, fieldName, control }: LinkListEdit
                   control={control}
                   name={`home_shortcuts.${index}.icon`}
                   render={({ field }) => (
-                    <FormItem className="md:col-span-12">
+                    <FormItem className="md:col-span-6">
                       <FormLabel className="text-[11px]">Biểu tượng</FormLabel>
                       <FormControl>
                         <select
-                          className="h-8 w-full md:w-60 rounded-md border bg-background px-2 text-xs"
+                          className="h-8 w-full rounded-md border bg-background px-2 text-xs"
                           {...field}
                         >
                           {SHORTCUT_ICON_OPTIONS.map((option) => (
@@ -358,7 +358,11 @@ function LinkListEditor({ title, description, fieldName, control }: LinkListEdit
                 />
               )}
 
-              <div className="md:col-span-2 flex items-center justify-end gap-1 pt-5">
+              <div
+                className={`${
+                  fieldName === 'home_shortcuts' ? 'md:col-span-6' : 'md:col-span-2'
+                } flex items-center justify-end gap-1 pt-5`}
+              >
                 <FormField
                   control={control}
                   name={`${fieldName}.${index}.open_in_new_tab`}
