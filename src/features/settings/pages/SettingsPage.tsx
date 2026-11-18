@@ -57,6 +57,23 @@ const footerLinkSchema = z.object({
   open_in_new_tab: z.boolean(),
 })
 
+const homeShortcutSchema = footerLinkSchema.extend({
+  icon: z.string().trim().min(1).max(40),
+})
+
+const SHORTCUT_ICON_OPTIONS = [
+  { value: 'calendar', label: 'Lịch' },
+  { value: 'mail', label: 'Thư điện tử' },
+  { value: 'file-text', label: 'Văn bản' },
+  { value: 'book-open', label: 'Sách / Bài giảng' },
+  { value: 'briefcase', label: 'Việc làm' },
+  { value: 'message-circle', label: 'Hỏi đáp' },
+  { value: 'graduation-cap', label: 'Đào tạo' },
+  { value: 'users', label: 'Con người' },
+  { value: 'download', label: 'Tải về' },
+  { value: 'link', label: 'Liên kết' },
+]
+
 const siteSettingsSchema = z.object({
   header_logo_width: z.number().int().min(80).max(600),
   header_logo_height: z.number().int().min(24).max(120),
@@ -82,6 +99,7 @@ const siteSettingsSchema = z.object({
   developer_url: z.string().trim().max(500),
   quick_links: z.array(footerLinkSchema),
   external_links: z.array(footerLinkSchema),
+  home_shortcuts: z.array(homeShortcutSchema).max(12, 'Tối đa 12 lối tắt'),
 })
 
 type SettingsFormValues = z.infer<typeof siteSettingsSchema>
@@ -211,7 +229,7 @@ function ImageUploadBox({
 interface LinkListEditorProps {
   title: string
   description: string
-  fieldName: 'quick_links' | 'external_links'
+  fieldName: 'quick_links' | 'external_links' | 'home_shortcuts'
   control: ReturnType<typeof useForm<SettingsFormValues>>['control']
 }
 
@@ -232,14 +250,19 @@ function LinkListEditor({ title, description, fieldName, control }: LinkListEdit
           type="button"
           variant="outline"
           size="sm"
-          onClick={() =>
-            append({
+          onClick={() => {
+            const blank = {
               label_vi: '',
               label_en: '',
               href: '',
               open_in_new_tab: fieldName === 'external_links',
-            })
-          }
+            }
+            if (fieldName === 'home_shortcuts') {
+              ;(append as (value: typeof blank & { icon: string }) => void)({ ...blank, icon: 'link' })
+            } else {
+              append(blank)
+            }
+          }}
           className="text-xs h-8 cursor-pointer shrink-0"
         >
           <Plus className="h-3.5 w-3.5 mr-1" />
@@ -310,6 +333,30 @@ function LinkListEditor({ title, description, fieldName, control }: LinkListEdit
                   </FormItem>
                 )}
               />
+
+              {fieldName === 'home_shortcuts' && (
+                <FormField
+                  control={control}
+                  name={`home_shortcuts.${index}.icon`}
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-12">
+                      <FormLabel className="text-[11px]">Biểu tượng</FormLabel>
+                      <FormControl>
+                        <select
+                          className="h-8 w-full md:w-60 rounded-md border bg-background px-2 text-xs"
+                          {...field}
+                        >
+                          {SHORTCUT_ICON_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <div className="md:col-span-2 flex items-center justify-end gap-1 pt-5">
                 <FormField
@@ -417,6 +464,7 @@ function SettingsFormInner({
       developer_url: initialData.developer_url,
       quick_links: initialData.quick_links,
       external_links: initialData.external_links,
+      home_shortcuts: initialData.home_shortcuts ?? [],
     },
   })
 
@@ -823,6 +871,13 @@ function SettingsFormInner({
             </TabsContent>
 
             <TabsContent value="footer" className="space-y-6">
+              <LinkListEditor
+                title="Lối tắt trang chủ (thanh biểu tượng)"
+                description="Các nút ở thanh biểu tượng dưới phần đầu trang chủ, ví dụ Thư điện tử, Văn bản – Biểu mẫu. Đổi đường dẫn thư điện tử tại đây."
+                fieldName="home_shortcuts"
+                control={form.control}
+              />
+
               <LinkListEditor
                 title="Cột Thông tin / Liên kết nhanh (Quick Links)"
                 description="Dùng khi Menu chân trang (footer) trong phần Menu điều hướng chưa có mục cấu hình."

@@ -129,6 +129,10 @@ export function CommandPalette({
       icon: Tags, category: 'pages', action: () => go('/tags'),
     },
     {
+      id: 'documents', title: 'Văn bản & Tài liệu', subtitle: 'Biểu mẫu, bài giảng, giáo trình',
+      icon: FileText, category: 'pages', action: () => go('/documents'),
+    },
+    {
       id: 'banners', title: 'Quản lý Banner', subtitle: 'Hình ảnh quảng cáo, slider',
       icon: Image, category: 'pages', action: () => go('/banners'),
     },

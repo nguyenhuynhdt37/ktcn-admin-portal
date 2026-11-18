@@ -14,6 +14,10 @@ export interface FooterLinkItem {
   open_in_new_tab: boolean
 }
 
+export interface HomeShortcutItem extends FooterLinkItem {
+  icon: string
+}
+
 export interface SiteSettings {
   footer_builder?: FooterBuilder | null
   header_logo_width?: number
@@ -43,6 +47,7 @@ export interface SiteSettings {
   developer_url: string
   quick_links: FooterLinkItem[]
   external_links: FooterLinkItem[]
+  home_shortcuts?: HomeShortcutItem[]
 }
 
 export type UpdateSiteSettingsPayload = Omit<

@@ -58,6 +58,7 @@ const GalleriesPage = lazy(() =>
 const GalleryCreatePage = lazy(() => import('@/features/galleries/pages/GalleryCreatePage'))
 const GalleryEditPage = lazy(() => import('@/features/galleries/pages/GalleryEditPage'))
 const BannersPage = lazy(() => import('@/features/banners/pages/BannersPage'))
+const DocumentsPage = lazy(() => import('@/features/documents/pages/DocumentsPage'))
 const TeachersPage = lazy(() =>
   import('@/features/teachers/pages/TeachersPage').then((m) => ({ default: m.TeachersPage }))
 )
@@ -211,6 +212,10 @@ export const router = createBrowserRouter([
       {
         path: 'banners',
         element: withSuspense(<BannersPage />),
+      },
+      {
+        path: 'documents',
+        element: withSuspense(<DocumentsPage />),
       },
       {
         path: 'teachers',

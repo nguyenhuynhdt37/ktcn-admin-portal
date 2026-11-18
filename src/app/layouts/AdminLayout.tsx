@@ -184,6 +184,7 @@ function SidebarContent({ user, onClose }: SidebarContentProps) {
     { label: 'Danh mục', href: '/categories', icon: FolderOpen, permission: 'menu.category' },
     { label: 'Thẻ (Tag)', href: '/tags', icon: Tag, permission: null },
     { label: 'Banner quảng cáo', href: '/banners', icon: Image, permission: null },
+    { label: 'Văn bản & Tài liệu', href: '/documents', icon: FileText, permission: null },
     { label: 'Album ảnh', href: '/galleries', icon: Images, permission: null },
     { label: 'Menu điều hướng', href: '/menus', icon: Menu, permission: 'menu.menu' },
     
