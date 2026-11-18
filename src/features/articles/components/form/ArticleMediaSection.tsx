@@ -1,11 +1,11 @@
 import { useRef, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
-import { Label } from '@/shared/components/ui/label'
 import { Camera, Image as ImageIcon, Loader2, Trash } from 'lucide-react'
 import { articleService } from '../../services/articleService'
 import { toast } from 'sonner'
 import { getMediaUrl } from '../../utils/media'
+import { validateImageFile } from '@/shared/utils/security'
 
 interface ArticleMediaSectionProps {
   thumbnailKey: string | null
@@ -30,42 +30,52 @@ export function ArticleMediaSection({
 
   const [thumbPreview, setThumbPreview] = useState<string | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
-
-  // Sync previews with initial keys (mostly for edit mode or initial render)
-  useEffect(() => {
-    if (thumbnailKey) {
-      setThumbPreview(getMediaUrl(thumbnailKey))
-    } else {
-      setThumbPreview(null)
-    }
-  }, [thumbnailKey])
+  const thumbBlobRef = useRef<string | null>(null)
+  const coverBlobRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (coverKey) {
-      setCoverPreview(getMediaUrl(coverKey))
-    } else {
-      setCoverPreview(null)
+    return () => {
+      if (thumbBlobRef.current) URL.revokeObjectURL(thumbBlobRef.current)
+      if (coverBlobRef.current) URL.revokeObjectURL(coverBlobRef.current)
     }
-  }, [coverKey])
+  }, [])
+
+  const displayThumbPreview = thumbPreview ?? (thumbnailKey ? getMediaUrl(thumbnailKey) : null)
+  const displayCoverPreview = coverPreview ?? (coverKey ? getMediaUrl(coverKey) : null)
 
   const handleThumbUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    const fileError = validateImageFile(file, { maxSizeMb: 2 })
+    if (fileError) {
+      toast.error(fileError)
+      e.target.value = ''
+      return
+    }
+
     setThumbUploading(true)
-    // Hiển thị preview local lập tức
+    if (thumbBlobRef.current) URL.revokeObjectURL(thumbBlobRef.current)
     const localUrl = URL.createObjectURL(file)
+    thumbBlobRef.current = localUrl
     setThumbPreview(localUrl)
 
     try {
       const res = await articleService.uploadMedia(file)
       setThumbnailKey(res.object_key)
+      URL.revokeObjectURL(localUrl)
+      if (thumbBlobRef.current === localUrl) thumbBlobRef.current = null
+      setThumbPreview(null)
       toast.success('Tải ảnh đại diện lên thành công!')
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error?.message || 'Không thể tải ảnh đại diện lên.')
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      toast.error(errorObj?.response?.data?.error?.message || 'Không thể tải ảnh đại diện lên.')
+      URL.revokeObjectURL(localUrl)
+      if (thumbBlobRef.current === localUrl) thumbBlobRef.current = null
       setThumbPreview(null)
     } finally {
       setThumbUploading(false)
+      e.target.value = ''
     }
   }
 
@@ -73,20 +83,35 @@ export function ArticleMediaSection({
     const file = e.target.files?.[0]
     if (!file) return
 
+    const fileError = validateImageFile(file, { maxSizeMb: 2 })
+    if (fileError) {
+      toast.error(fileError)
+      e.target.value = ''
+      return
+    }
+
     setCoverUploading(true)
-    // Hiển thị preview local lập tức
+    if (coverBlobRef.current) URL.revokeObjectURL(coverBlobRef.current)
     const localUrl = URL.createObjectURL(file)
+    coverBlobRef.current = localUrl
     setCoverPreview(localUrl)
 
     try {
       const res = await articleService.uploadMedia(file)
       setCoverKey(res.object_key)
+      URL.revokeObjectURL(localUrl)
+      if (coverBlobRef.current === localUrl) coverBlobRef.current = null
+      setCoverPreview(null)
       toast.success('Tải ảnh bìa lên thành công!')
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error?.message || 'Không thể tải ảnh bìa lên.')
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      toast.error(errorObj?.response?.data?.error?.message || 'Không thể tải ảnh bìa lên.')
+      URL.revokeObjectURL(localUrl)
+      if (coverBlobRef.current === localUrl) coverBlobRef.current = null
       setCoverPreview(null)
     } finally {
       setCoverUploading(false)
+      e.target.value = ''
     }
   }
 
@@ -99,9 +124,9 @@ export function ArticleMediaSection({
         </CardHeader>
         <CardContent className="space-y-4 flex flex-col items-center justify-center p-4">
           <div className="relative w-full aspect-video md:aspect-[4/3] rounded-lg overflow-hidden border bg-muted flex items-center justify-center group shadow-xs">
-            {thumbPreview ? (
+            {displayThumbPreview ? (
               <img
-                src={thumbPreview}
+                src={displayThumbPreview}
                 alt="Thumbnail Preview"
                 className="size-full object-cover transition-transform group-hover:scale-105 duration-200"
               />
@@ -123,7 +148,7 @@ export function ArticleMediaSection({
                 >
                   Tải ảnh lên
                 </Button>
-                {thumbPreview && (
+                {displayThumbPreview && (
                   <Button
                     type="button"
                     size="sm"
@@ -168,9 +193,9 @@ export function ArticleMediaSection({
         </CardHeader>
         <CardContent className="space-y-4 flex flex-col items-center justify-center p-4">
           <div className="relative w-full aspect-[16/9] rounded-lg overflow-hidden border bg-muted flex items-center justify-center group shadow-xs">
-            {coverPreview ? (
+            {displayCoverPreview ? (
               <img
-                src={coverPreview}
+                src={displayCoverPreview}
                 alt="Cover Preview"
                 className="size-full object-cover transition-transform group-hover:scale-105 duration-200"
               />
@@ -192,7 +217,7 @@ export function ArticleMediaSection({
                 >
                   Tải ảnh lên
                 </Button>
-                {coverPreview && (
+                {displayCoverPreview && (
                   <Button
                     type="button"
                     size="sm"

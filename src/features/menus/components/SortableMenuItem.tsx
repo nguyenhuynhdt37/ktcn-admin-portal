@@ -15,7 +15,6 @@ import {
   ChevronDown,
   ChevronRight,
 } from 'lucide-react'
-import * as LucideIcons from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -248,17 +247,18 @@ export function SortableMenuItem({
 
           {/* Tiêu đề & badge */}
           <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1.5">
-            <span
+            <button
+              type="button"
               onClick={onEdit}
               className={cn(
-                'text-sm font-semibold truncate cursor-pointer hover:text-primary transition-colors flex items-center gap-1',
+                'text-left text-sm font-semibold truncate cursor-pointer hover:text-primary transition-colors flex items-center gap-1',
                 !isVisible && 'text-muted-foreground line-through',
                 isBrokenLink && 'text-destructive font-bold'
               )}
             >
               {isBrokenLink && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
               {title}
-            </span>
+            </button>
             <div className="flex items-center gap-1.5 flex-wrap">
               <Badge variant="outline" className="text-[10px] px-1 py-0 h-4.5 font-normal">
                 {getTargetLabel()}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Cpu, Save, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
@@ -30,13 +30,8 @@ export function AIModelSelector({
   title,
   description,
 }: AIModelSelectorProps) {
-  const [selectedModel, setSelectedModel] = useState('')
-
-  useEffect(() => {
-    if (activeModel) {
-      setSelectedModel(activeModel)
-    }
-  }, [activeModel])
+  const [selectedModel, setSelectedModel] = useState<string | null>(null)
+  const currentModel = selectedModel ?? activeModel
 
   return (
     <Card className="border shadow-xs bg-gradient-to-r from-background via-background to-muted/30 overflow-hidden">
@@ -56,7 +51,7 @@ export function AIModelSelector({
             <div className="h-9 w-[180px] bg-muted animate-pulse rounded border" />
           ) : (
             <Select
-              value={selectedModel}
+              value={currentModel}
               onValueChange={setSelectedModel}
               disabled={isPending}
             >
@@ -75,8 +70,8 @@ export function AIModelSelector({
 
           <Button
             size="sm"
-            onClick={() => onSave(selectedModel)}
-            disabled={isPending || selectedModel === activeModel || !selectedModel}
+            onClick={() => onSave(currentModel)}
+            disabled={isPending || currentModel === activeModel || !currentModel}
             className="flex items-center gap-1.5 cursor-pointer h-9 shadow-xs shrink-0 font-semibold"
           >
             {isPending ? (

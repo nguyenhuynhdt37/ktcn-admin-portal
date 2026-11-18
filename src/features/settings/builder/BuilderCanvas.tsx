@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -91,11 +91,20 @@ function CanvasBlock({
     data: { kind: 'block' },
   })
   const [liveWidth, setLiveWidth] = useState<number | null>(null)
+  const resizeCleanupRef = useRef<(() => void) | null>(null)
   const resizable = block.type === 'logo' || block.type === 'image'
   const shown = liveWidth ? { ...block, width: liveWidth, height: 0 } : block
+
+  useEffect(() => {
+    return () => {
+      resizeCleanupRef.current?.()
+    }
+  }, [])
+
   const startResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault()
     event.stopPropagation()
+    resizeCleanupRef.current?.()
     const startX = event.clientX
     const sign = block.align === 'right' ? -1 : 1
     let width = block.width
@@ -103,12 +112,17 @@ function CanvasBlock({
       width = Math.round(Math.max(32, Math.min(1200, block.width + (e.clientX - startX) * sign)))
       setLiveWidth(width)
     }
-    const up = () => {
+    const detach = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
+      resizeCleanupRef.current = null
+    }
+    const up = () => {
+      detach()
       setLiveWidth(null)
       if (width !== block.width) onResize(width)
     }
+    resizeCleanupRef.current = detach
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
   }
@@ -228,6 +242,7 @@ function CanvasColumn({
 function CanvasRow({
   row,
   index,
+  isLast,
   selected,
   onSelect,
   onMove,
@@ -235,6 +250,7 @@ function CanvasRow({
 }: {
   row: FooterRow
   index: number
+  isLast: boolean
   selected: boolean
   onSelect: () => void
   onMove: (direction: number) => void
@@ -272,7 +288,12 @@ function CanvasRow({
         >
           <ArrowUp size={13} />
         </button>
-        <button type="button" aria-label={`Đưa hàng ${index + 1} xuống`} onClick={() => onMove(1)}>
+        <button
+          type="button"
+          aria-label={`Đưa hàng ${index + 1} xuống`}
+          disabled={isLast}
+          onClick={() => onMove(1)}
+        >
           <ArrowDown size={13} />
         </button>
       </div>
@@ -385,6 +406,7 @@ export function BuilderCanvas({
               key={row.id}
               row={row}
               index={ri}
+              isLast={ri === layout.rows.length - 1}
               selected={selection?.id === row.id}
               onSelect={() => setSelection({ kind: 'row', id: row.id })}
               onMove={(direction) => onMoveRow(row.id, direction)}

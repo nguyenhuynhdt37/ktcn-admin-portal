@@ -47,7 +47,6 @@ export function MenuItemCreatePanel({
   // State đa ngôn ngữ và tab
   const [activeTab, setActiveTab] = useState<'vi' | 'en'>('vi')
   const [isTranslating, setIsTranslating] = useState(false)
-  const [lastTranslatedVi, setLastTranslatedVi] = useState('')
 
   // State form
   const [translations, setTranslations] = useState({

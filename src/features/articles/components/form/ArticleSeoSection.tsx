@@ -5,7 +5,7 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { Label } from '@/shared/components/ui/label'
 import { Button } from '@/shared/components/ui/button'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shared/components/ui/select'
-import { ChevronDown, Globe, Sparkles, Search } from 'lucide-react'
+import { ChevronDown, Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Switch } from '@/shared/components/ui/switch'
 import { SEO_CONFIG } from '../../constants'
@@ -54,7 +54,6 @@ export function ArticleSeoSection({
   slug,
   content,
   excerpt,
-  categoryName = 'tin-tuc',
 
   seoTitle,
   setSeoTitle,
@@ -156,12 +155,12 @@ export function ArticleSeoSection({
           <div className="space-y-1.5">
             <div className="flex justify-between items-center text-left">
               <div className="flex items-center gap-2">
-                <Label htmlFor="seoTitle" className="text-xs font-semibold text-foreground/80">
+                <Label htmlFor={`seoTitle-${lang}`} className="text-xs font-semibold text-foreground/80">
                   Tiêu đề SEO (seo_title)
                 </Label>
                 <div className="flex items-center gap-1">
                   <Switch
-                    id="seoTitleOverride"
+                    id={`seoTitleOverride-${lang}`}
                     checked={isSeoTitleOverridden}
                     onCheckedChange={setIsSeoTitleOverridden}
                     disabled={disabled}
@@ -180,7 +179,7 @@ export function ArticleSeoSection({
               </span>
             </div>
             <Input
-              id="seoTitle"
+              id={`seoTitle-${lang}`}
               placeholder="Nhập tiêu đề SEO..."
               value={seoTitle}
               onChange={(e) => setSeoTitle(e.target.value)}
@@ -215,12 +214,12 @@ export function ArticleSeoSection({
           <div className="space-y-1.5 text-left">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Label htmlFor="seoDescription" className="text-xs font-semibold text-foreground/80">
+                <Label htmlFor={`seoDescription-${lang}`} className="text-xs font-semibold text-foreground/80">
                   Mô tả SEO (seo_description)
                 </Label>
                 <div className="flex items-center gap-1">
                   <Switch
-                    id="seoDescOverride"
+                    id={`seoDescOverride-${lang}`}
                     checked={isSeoDescriptionOverridden}
                     onCheckedChange={setIsSeoDescriptionOverridden}
                     disabled={disabled}
@@ -239,7 +238,7 @@ export function ArticleSeoSection({
               </span>
             </div>
             <Textarea
-              id="seoDescription"
+              id={`seoDescription-${lang}`}
               placeholder="Nhập đoạn trích ngắn cho công cụ tìm kiếm..."
               value={seoDescription}
               onChange={(e) => setSeoDescription(e.target.value)}
@@ -294,11 +293,11 @@ export function ArticleSeoSection({
               {/* Search Engines settings */}
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="canonicalUrl" className="text-[11px] font-semibold text-foreground">
+                  <Label htmlFor={`canonicalUrl-${lang}`} className="text-[11px] font-semibold text-foreground">
                     Đường dẫn gốc (canonical_url)
                   </Label>
                   <Input
-                    id="canonicalUrl"
+                    id={`canonicalUrl-${lang}`}
                     type="url"
                     placeholder="https://example.com/goc"
                     value={canonicalUrl}
@@ -309,11 +308,11 @@ export function ArticleSeoSection({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="robots" className="text-[11px] font-semibold text-foreground">
+                  <Label htmlFor={`robots-${lang}`} className="text-[11px] font-semibold text-foreground">
                     Cấu hình Robots (robots)
                   </Label>
                   <Select value={robots} onValueChange={setRobots} disabled={true}>
-                    <SelectTrigger id="robots" className="h-9 text-xs cursor-not-allowed bg-muted/30">
+                    <SelectTrigger id={`robots-${lang}`} className="h-9 text-xs cursor-not-allowed bg-muted/30">
                       <SelectValue placeholder="Mặc định: index, follow" />
                     </SelectTrigger>
                     <SelectContent className="text-xs">
@@ -331,11 +330,11 @@ export function ArticleSeoSection({
               {/* Open Graph settings */}
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="ogTitle" className="text-[11px] font-semibold text-foreground">
+                  <Label htmlFor={`ogTitle-${lang}`} className="text-[11px] font-semibold text-foreground">
                     Tiêu đề OpenGraph (og_title)
                   </Label>
                   <Input
-                    id="ogTitle"
+                    id={`ogTitle-${lang}`}
                     placeholder="Tiêu đề hiển thị khi share Facebook/Zalo..."
                     value={ogTitle}
                     onChange={(e) => setOgTitle(e.target.value)}
@@ -345,11 +344,11 @@ export function ArticleSeoSection({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="ogDescription" className="text-[11px] font-semibold text-foreground">
+                  <Label htmlFor={`ogDescription-${lang}`} className="text-[11px] font-semibold text-foreground">
                     Mô tả OpenGraph (og_description)
                   </Label>
                   <Textarea
-                    id="ogDescription"
+                    id={`ogDescription-${lang}`}
                     placeholder="Mô tả tóm tắt khi share Facebook/Zalo..."
                     value={ogDescription}
                     onChange={(e) => setOgDescription(e.target.value)}

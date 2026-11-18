@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useParams, useNavigate } from 'react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -28,7 +27,7 @@ import {
   AlertDialogTrigger,
 } from '@/shared/components/ui/alert-dialog'
 import { useAuth } from '@/app/providers/AuthProvider'
-import { useAuthStore } from '@/stores/authStore'
+import { isAdminUser, useAuthStore } from '@/stores/authStore'
 import { userActivityService } from '@/features/users/services/userActivityService'
 
 import { SessionsTab } from '@/features/users/components/SessionsTab'
@@ -43,7 +42,7 @@ export function UserActivityPage() {
   const { user: currentUser } = useAuthStore()
   const queryClient = useQueryClient()
 
-  const isAdmin = !!currentUser?.is_admin || !!currentUser?.roles?.includes('super_admin')
+  const isAdmin = isAdminUser(currentUser)
   const isAuthorized = isAdmin || userId === currentUser?.id
   const canView      = hasPermission('user.view') && isAuthorized
   const canUpdate    = hasPermission('user.update') && isAuthorized

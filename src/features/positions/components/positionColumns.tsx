@@ -159,6 +159,7 @@ export const getPositionColumns = ({
           <Switch
             checked={position.is_active}
             onCheckedChange={(checked) => onToggleStatus(position.id, checked)}
+            aria-label={`Bật/tắt chức vụ ${position.name}`}
             className="scale-75 cursor-pointer"
           />
         </div>

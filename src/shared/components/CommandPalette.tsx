@@ -1,11 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from '@/shared/components/ui/dialog'
 import { Input } from '@/shared/components/ui/input'
-import { getModifierKey, getAltKey } from '@/shared/utils/os'
+import { isAdminUser, useAuthStore } from '@/stores/authStore'
+import { getAltKey } from '@/shared/utils/os'
 import {
   Search,
   LayoutDashboard,
@@ -51,6 +53,7 @@ interface CommandItem {
   category: 'search-articles' | 'search-users' | 'search-categories' | 'search-tags' | 'search-staff' | 'pages' | 'actions'
   action: () => void
   shortcut?: string[]
+  adminOnly?: boolean
 }
 
 // Kết quả tìm kiếm từ API
@@ -70,6 +73,8 @@ export function CommandPalette({
   onOpenHelp,
 }: CommandPaletteProps) {
   const navigate = useNavigate()
+  const { user } = useAuthStore()
+  const isAdmin = isAdminUser(user)
   const [search, setSearch] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
@@ -77,21 +82,35 @@ export function CommandPalette({
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
-  const modKey = getModifierKey()
   const altKey = getAltKey()
 
   // Helper để navigate và đóng palette
-  const go = useCallback((path: string) => {
-    navigate(path)
+  const handleClose = () => {
+    setSearch('')
+    setSelectedIndex(0)
+    setSearchResults(null)
+    setIsSearching(false)
     onClose()
-  }, [navigate, onClose])
+  }
+
+  const go = (path: string) => {
+    navigate(path)
+    handleClose()
+  }
+
+  const openKeyboardHelp = () => {
+    handleClose()
+    window.setTimeout(() => onOpenHelp(), 100)
+  }
 
   // Danh sách tất cả trang trong hệ thống
-  const pageCommands: CommandItem[] = [
+  const allPageCommands: CommandItem[] = [
     {
       id: 'dashboard', title: 'Tổng quan (Dashboard)', subtitle: 'Biểu đồ và báo cáo hệ thống',
-      icon: LayoutDashboard, category: 'pages', action: () => go('/dashboard'), shortcut: [altKey, 'D'],
+      icon: LayoutDashboard, category: 'pages', action: () => go('/dashboard'), shortcut: [altKey, 'D'], adminOnly: true,
     },
     {
       id: 'articles', title: 'Quản lý bài viết', subtitle: 'Danh sách bài viết tin tức',
@@ -127,7 +146,7 @@ export function CommandPalette({
     },
     {
       id: 'users', title: 'Quản lý thành viên', subtitle: 'Tài khoản và phân quyền',
-      icon: Users, category: 'pages', action: () => go('/users'), shortcut: [altKey, 'U'],
+      icon: Users, category: 'pages', action: () => go('/users'), shortcut: [altKey, 'U'], adminOnly: true,
     },
     {
       id: 'menus', title: 'Quản lý Menu', subtitle: 'Menu điều hướng website',
@@ -147,7 +166,7 @@ export function CommandPalette({
     },
     {
       id: 'audit-logs', title: 'Nhật ký hệ thống', subtitle: 'Lịch sử thao tác quản trị',
-      icon: ClipboardList, category: 'pages', action: () => go('/audit-logs'), shortcut: [altKey, 'L'],
+      icon: ClipboardList, category: 'pages', action: () => go('/audit-logs'), shortcut: [altKey, 'L'], adminOnly: true,
     },
     {
       id: 'profile', title: 'Hồ sơ cá nhân', subtitle: 'Thông tin tài khoản của bạn',
@@ -159,20 +178,22 @@ export function CommandPalette({
     },
   ]
 
+  const pageCommands = allPageCommands.filter((cmd) => !cmd.adminOnly || isAdmin)
+
   // Hành động nhanh
   const actionCommands: CommandItem[] = [
     {
       id: 'toggle-theme', title: 'Chuyển đổi giao diện Sáng / Tối', subtitle: 'Thay đổi theme hệ thống',
-      icon: SunMoon, category: 'actions', action: () => { onToggleTheme(); onClose() }, shortcut: [altKey, 'T'],
+      icon: SunMoon, category: 'actions', action: () => { onToggleTheme(); handleClose() }, shortcut: [altKey, 'T'],
     },
     {
       id: 'keyboard-help', title: 'Xem danh sách phím tắt', subtitle: 'Mở bảng trợ giúp phím tắt nhanh',
       icon: HelpCircle, category: 'actions',
-      action: () => { onClose(); setTimeout(() => onOpenHelp(), 100) }, shortcut: ['?'],
+      action: () => openKeyboardHelp(), shortcut: ['?'],
     },
     {
       id: 'logout', title: 'Đăng xuất khỏi hệ thống', subtitle: 'Kết thúc phiên làm việc hiện tại',
-      icon: LogOut, category: 'actions', action: () => { onLogout(); onClose() },
+      icon: LogOut, category: 'actions', action: () => { onLogout(); handleClose() },
     },
   ]
 
@@ -187,8 +208,9 @@ export function CommandPalette({
       if (a.category_name) parts.push(a.category_name)
       parts.push(statusLabel)
       // Thêm slug rút gọn nếu title trùng nhau
-      const shortSlug = a.slug.length > 30 ? a.slug.substring(0, 30) + '…' : a.slug
-      parts.push(`/${shortSlug}`)
+      const rawSlug = a.slug || ''
+      const shortSlug = rawSlug.length > 30 ? rawSlug.substring(0, 30) + '…' : rawSlug
+      if (shortSlug) parts.push(`/${shortSlug}`)
       items.push({
         id: `article-${a.id}`, title: a.title,
         subtitle: parts.join(' · '),
@@ -196,12 +218,14 @@ export function CommandPalette({
         action: () => go(`/articles/${a.id}/edit`),
       })
     }
-    for (const u of searchResults.users) {
-      items.push({
-        id: `user-${u.id}`, title: u.full_name, subtitle: u.email,
-        icon: Users, category: 'search-users',
-        action: () => go(`/users/${u.id}/edit`),
-      })
+    if (isAdmin) {
+      for (const u of searchResults.users) {
+        items.push({
+          id: `user-${u.id}`, title: u.full_name, subtitle: u.email,
+          icon: Users, category: 'search-users',
+          action: () => go(`/users/${u.id}/edit`),
+        })
+      }
     }
     for (const c of searchResults.categories) {
       items.push({
@@ -227,36 +251,49 @@ export function CommandPalette({
     return items
   }
 
-  // Gọi API tìm kiếm (debounce 300ms)
-  const performSearch = useCallback(async (keyword: string) => {
-    if (keyword.length < 2) {
-      setSearchResults(null)
-      setIsSearching(false)
-      return
-    }
-    setIsSearching(true)
-    try {
-      const { data } = await httpClient.get<SearchResults>('/admin/search', { params: { q: keyword, limit: 5 } })
-      setSearchResults(data)
-    } catch {
-      setSearchResults(null)
-    } finally {
-      setIsSearching(false)
-    }
-  }, [])
-
-  // Debounce search
+  // Debounce search (300ms + hủy request cũ tránh race condition)
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (search.trim().length >= 2) {
+    const keyword = search.trim()
+    if (keyword.length >= 2) {
+      debounceRef.current = setTimeout(async () => {
+        abortControllerRef.current?.abort()
+        const controller = new AbortController()
+        abortControllerRef.current = controller
+        setIsSearching(true)
+        try {
+          const { data } = await httpClient.get<SearchResults>('/admin/search', {
+            params: { q: keyword, limit: 5 },
+            signal: controller.signal,
+          })
+          if (!controller.signal.aborted) {
+            setSearchResults(data)
+          }
+        } catch {
+          if (!controller.signal.aborted) {
+            setSearchResults(null)
+          }
+        } finally {
+          if (!controller.signal.aborted) {
+            setIsSearching(false)
+          }
+        }
+      }, 300)
+    }
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [search])
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val)
+    setSelectedIndex(0)
+    if (val.trim().length >= 2) {
       setIsSearching(true)
-      debounceRef.current = setTimeout(() => performSearch(search.trim()), 300)
     } else {
+      abortControllerRef.current?.abort()
       setSearchResults(null)
       setIsSearching(false)
     }
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [search, performSearch])
+  }
 
   // Xây dựng danh sách command
   const searchCommands = buildSearchCommands()
@@ -297,18 +334,23 @@ export function CommandPalette({
         { id: 'actions', name: 'Thao tác nhanh' },
       ]
 
-  // Reset khi search thay đổi
-  useEffect(() => { setSelectedIndex(0) }, [search])
-
   // Focus input khi mở
   useEffect(() => {
     if (isOpen) {
-      setSearch('')
-      setSelectedIndex(0)
-      setSearchResults(null)
-      setTimeout(() => inputRef.current?.focus(), 50)
+      focusTimerRef.current = setTimeout(() => inputRef.current?.focus(), 50)
+    } else {
+      abortControllerRef.current?.abort()
+    }
+    return () => {
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current)
     }
   }, [isOpen])
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort()
+    }
+  }, [])
 
   // Keyboard navigation
   useEffect(() => {
@@ -341,8 +383,9 @@ export function CommandPalette({
   const totalSearchResults = searchCommands.length
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-2xl overflow-hidden p-0 border-border bg-background/80 backdrop-blur-lg shadow-2xl transition-all duration-300">
+        <DialogTitle className="sr-only">Hộp lệnh nhanh</DialogTitle>
         {/* Brand Header */}
         <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/20">
           <div className="flex items-center gap-2.5">
@@ -368,7 +411,7 @@ export function CommandPalette({
             ref={inputRef}
             placeholder="Tìm kiếm bài viết, thành viên, danh mục, hoặc gõ lệnh..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-hidden border-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
           />
           <div className="flex items-center gap-2 shrink-0 ml-2">

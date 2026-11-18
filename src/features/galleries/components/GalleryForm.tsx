@@ -1,4 +1,5 @@
-import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useRef } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -18,7 +19,6 @@ import {
   ArrowDown,
   LayoutGrid,
   Info,
-  CheckCircle2,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
@@ -38,6 +38,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils'
 import { httpClient } from '@/services/http/client'
 import { getMediaUrl } from '@/features/articles/utils/media'
+import { validateImageFile } from '@/shared/utils/security'
 import { departmentService } from '@/features/departments/services/departmentService'
 import { galleryService } from '../services/galleryService'
 import type { Gallery, CreateGalleryPayload } from '../types'
@@ -296,6 +297,13 @@ function GalleryFormInner({
     const file = e.target.files?.[0]
     if (!file) return
 
+    const fileError = validateImageFile(file, { maxSizeMb: 5 })
+    if (fileError) {
+      toast.error(fileError)
+      e.target.value = ''
+      return
+    }
+
     setIsUploadingCover(true)
     const formData = new FormData()
     formData.append('file', file)
@@ -327,8 +335,15 @@ function GalleryFormInner({
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    setIsUploadingMulti(true)
     const fileList = Array.from(files)
+    const invalidError = fileList.map((f) => validateImageFile(f, { maxSizeMb: 5 })).find(Boolean)
+    if (invalidError) {
+      toast.error(invalidError)
+      e.target.value = ''
+      return
+    }
+
+    setIsUploadingMulti(true)
     const currentLength = items.length
 
     try {
@@ -801,7 +816,9 @@ function GalleryFormInner({
                     </div>
                   </div>
                 ) : (
-                  <div
+                  <button
+                    type="button"
+                    disabled={isUploadingCover}
                     onClick={() => !isUploadingCover && coverInputRef.current?.click()}
                     className={cn(
                       "flex w-full cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed transition-all text-muted-foreground aspect-video",
@@ -822,7 +839,7 @@ function GalleryFormInner({
                         <span className="text-[9px] text-muted-foreground/80 mt-0.5">Tỷ lệ 16:9, tối đa 5MB</span>
                       </>
                     )}
-                  </div>
+                  </button>
                 )}
                 {form.formState.errors.cover_object_key && (
                   <p className="text-[10px] font-semibold text-destructive mt-1">

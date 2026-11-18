@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { SortingState, RowSelectionState } from '@tanstack/react-table'
 import { useNavigate, useSearchParams } from 'react-router'
@@ -14,6 +14,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
 import { DataTable } from '@/shared/components/DataTable'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { toast } from 'sonner'
 import { getGalleryColumns } from '../components/galleryColumns'
 import { galleryService } from '../services/galleryService'
@@ -53,11 +54,6 @@ export function GalleriesPage() {
 
   const [searchInput, setSearchInput] = useState(searchVal)
 
-  // Sync local search input with URL search params
-  useEffect(() => {
-    setSearchInput(searchVal)
-  }, [searchVal])
-
   const listParams = useMemo(() => ({
     page: pageIndex + 1,
     page_size: pageSize,
@@ -93,8 +89,9 @@ export function GalleriesPage() {
       toast.success('Đổi trạng thái Album thành công!')
       queryClient.invalidateQueries({ queryKey: ['galleries'] })
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.error?.message || 'Không thể thay đổi trạng thái Album.')
+    onError: (err: unknown) => {
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      toast.error(errorObj?.response?.data?.error?.message || 'Không thể thay đổi trạng thái Album.')
     },
   })
 
@@ -105,25 +102,26 @@ export function GalleriesPage() {
       toast.success('Xóa Album thành công!')
       queryClient.invalidateQueries({ queryKey: ['galleries'] })
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.error?.message || 'Không thể xóa Album. Vui lòng thử lại.')
+    onError: (err: unknown) => {
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      toast.error(errorObj?.response?.data?.error?.message || 'Không thể xóa Album. Vui lòng thử lại.')
     },
   })
 
   // Handlers
-  const handleEditClick = (id: string) => {
+  const [galleryToDelete, setGalleryToDelete] = useState<string | null>(null)
+
+  const handleEditClick = useCallback((id: string) => {
     navigate(`/galleries/${id}/edit`)
-  }
+  }, [navigate])
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa Album này không?')) {
-      deleteMutation.mutate(id)
-    }
-  }
+  const handleDelete = useCallback((id: string) => {
+    setGalleryToDelete(id)
+  }, [])
 
-  const handleToggleStatus = (id: string, active: boolean) => {
+  const handleToggleStatus = useCallback((id: string, active: boolean) => {
     toggleStatusMutation.mutate({ id, is_active: active })
-  }
+  }, [toggleStatusMutation])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -150,17 +148,11 @@ export function GalleriesPage() {
     })
   }
 
-  // Tanstack table pagination & sorting config mapping
-  const pagination = useMemo(() => ({
-    pageIndex,
-    pageSize,
-  }), [pageIndex, pageSize])
-
   const sorting = useMemo<SortingState>(() => [
     { id: sortBy, desc: sortDir === 'desc' }
   ], [sortBy, sortDir])
 
-  const setSorting = (updater: any) => {
+  const setSorting = (updater: SortingState | ((old: SortingState) => SortingState)) => {
     const nextSorting = typeof updater === 'function' ? updater(sorting) : updater
     if (nextSorting && nextSorting.length > 0) {
       setSearchParams((prev) => {
@@ -228,7 +220,7 @@ export function GalleriesPage() {
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 <SelectItem value="all" className="text-xs">Tất cả đơn vị</SelectItem>
-                {departments.map((dept: any) => (
+                {departments.map((dept) => (
                   <SelectItem key={dept.id} value={dept.id} className="text-xs">
                     {dept.name}
                   </SelectItem>
@@ -279,6 +271,21 @@ export function GalleriesPage() {
           />
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!galleryToDelete}
+        onOpenChange={(open) => !open && setGalleryToDelete(null)}
+        title="Xác nhận xóa Album"
+        description="Bạn có chắc chắn muốn xóa Album này không?"
+        confirmText="Xóa"
+        variant="destructive"
+        onConfirm={() => {
+          if (galleryToDelete) {
+            deleteMutation.mutate(galleryToDelete)
+            setGalleryToDelete(null)
+          }
+        }}
+      />
     </div>
   )
 }

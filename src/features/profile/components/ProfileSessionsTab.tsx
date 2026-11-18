@@ -7,7 +7,6 @@ dayjs.extend(relativeTime)
 import type { ColumnDef } from '@tanstack/react-table'
 import { Globe, Monitor, Clock, Trash2, Loader2, RefreshCw, Wifi } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
-import { Badge } from '@/shared/components/ui/badge'
 import {
   AlertDialog,
   AlertDialogAction,

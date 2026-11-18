@@ -3,6 +3,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Switch } from '@/shared/components/ui/switch'
+import { toSafeExternalHref } from '@/shared/utils/security'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -112,18 +113,25 @@ export const getBannerColumns = ({
               </span>
             </div>
           )}
-          {item.target_type === 'EXTERNAL' && item.link_url && (
-            <a
-              href={item.link_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[9px] text-primary hover:underline flex items-center gap-1 w-fit mt-0.5"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ExternalLink className="h-2.5 w-2.5 shrink-0" />
-              <span className="truncate max-w-[150px]">{item.link_url}</span>
-            </a>
-          )}
+          {item.target_type === 'EXTERNAL' && item.link_url && (() => {
+            const safeUrl = toSafeExternalHref(item.link_url)
+            return safeUrl ? (
+              <a
+                href={safeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[9px] text-primary hover:underline flex items-center gap-1 w-fit mt-0.5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+                <span className="truncate max-w-[150px]">{item.link_url}</span>
+              </a>
+            ) : (
+              <span className="text-[9px] text-muted-foreground truncate max-w-[150px] mt-0.5">
+                {item.link_url}
+              </span>
+            )
+          })()}
         </div>
       )
     },
@@ -207,6 +215,7 @@ export const getBannerColumns = ({
           <Switch
             checked={item.is_active}
             onCheckedChange={(checked) => onToggleStatus(item.id, checked)}
+            aria-label={`Bật/tắt banner ${item.title}`}
             className="scale-75 cursor-pointer"
           />
         </div>

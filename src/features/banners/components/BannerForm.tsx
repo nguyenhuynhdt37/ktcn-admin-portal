@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils'
 import { BannerPosition, type Banner } from '../types'
 import { bannerService } from '../services/bannerService'
 import { articleService } from '@/features/articles/services/articleService'
+import { isValidWebsiteUrl, validateImageFile } from '@/shared/utils/security'
 
 const bannerFormSchema = z.object({
   title: z.string()
@@ -80,8 +81,7 @@ const bannerFormSchema = z.object({
       })
     }
   } else if (data.target_type === 'EXTERNAL' && data.link_url) {
-    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/
-    if (!urlPattern.test(data.link_url)) {
+    if (!isValidWebsiteUrl(data.link_url)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Đường dẫn liên kết không đúng định dạng',
@@ -124,9 +124,18 @@ export function BannerForm({
 
   const [desktopUploading, setDesktopUploading] = useState(false)
   const [localDesktopUrl, setLocalDesktopUrl] = useState<string | null>(null)
+  const localDesktopUrlRef = useRef<string | null>(null)
 
   const [mobileUploading, setMobileUploading] = useState(false)
   const [localMobileUrl, setLocalMobileUrl] = useState<string | null>(null)
+  const localMobileUrlRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (localDesktopUrlRef.current) URL.revokeObjectURL(localDesktopUrlRef.current)
+      if (localMobileUrlRef.current) URL.revokeObjectURL(localMobileUrlRef.current)
+    }
+  }, [])
 
   // Articles list state for select box
   const [articles, setArticles] = useState<{ id: string; title: string; categoryName: string }[]>([])
@@ -269,8 +278,17 @@ export function BannerForm({
     const file = e.target.files?.[0]
     if (!file) return
 
+    const fileError = validateImageFile(file, { maxSizeMb: 5 })
+    if (fileError) {
+      toast.error(fileError)
+      e.target.value = ''
+      return
+    }
+
     setDesktopUploading(true)
+    if (localDesktopUrlRef.current) URL.revokeObjectURL(localDesktopUrlRef.current)
     const localUrl = URL.createObjectURL(file)
+    localDesktopUrlRef.current = localUrl
     setLocalDesktopUrl(localUrl)
 
     try {
@@ -280,9 +298,12 @@ export function BannerForm({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.response?.data?.error?.message || 'Không thể tải ảnh desktop lên.')
+      URL.revokeObjectURL(localUrl)
+      if (localDesktopUrlRef.current === localUrl) localDesktopUrlRef.current = null
       setLocalDesktopUrl(null)
     } finally {
       setDesktopUploading(false)
+      e.target.value = ''
     }
   }
 
@@ -290,8 +311,17 @@ export function BannerForm({
     const file = e.target.files?.[0]
     if (!file) return
 
+    const fileError = validateImageFile(file, { maxSizeMb: 5 })
+    if (fileError) {
+      toast.error(fileError)
+      e.target.value = ''
+      return
+    }
+
     setMobileUploading(true)
+    if (localMobileUrlRef.current) URL.revokeObjectURL(localMobileUrlRef.current)
     const localUrl = URL.createObjectURL(file)
+    localMobileUrlRef.current = localUrl
     setLocalMobileUrl(localUrl)
 
     try {
@@ -301,20 +331,31 @@ export function BannerForm({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.response?.data?.error?.message || 'Không thể tải ảnh mobile lên.')
+      URL.revokeObjectURL(localUrl)
+      if (localMobileUrlRef.current === localUrl) localMobileUrlRef.current = null
       setLocalMobileUrl(null)
     } finally {
       setMobileUploading(false)
+      e.target.value = ''
     }
   }
 
   const handleRemoveDesktop = () => {
     form.setValue('desktop_image_object_key', '')
+    if (localDesktopUrlRef.current) {
+      URL.revokeObjectURL(localDesktopUrlRef.current)
+      localDesktopUrlRef.current = null
+    }
     setLocalDesktopUrl(null)
     if (desktopInputRef.current) desktopInputRef.current.value = ''
   }
 
   const handleRemoveMobile = () => {
     form.setValue('mobile_image_object_key', '')
+    if (localMobileUrlRef.current) {
+      URL.revokeObjectURL(localMobileUrlRef.current)
+      localMobileUrlRef.current = null
+    }
     setLocalMobileUrl(null)
     if (mobileInputRef.current) mobileInputRef.current.value = ''
   }
@@ -389,8 +430,11 @@ export function BannerForm({
                   className="hidden"
                 />
                 
-                <div
-                  onClick={() => !desktopUploading && !isSubmitting && desktopInputRef.current?.click()}
+                <button
+                  type="button"
+                  disabled={desktopUploading || isSubmitting}
+                  onClick={() => desktopInputRef.current?.click()}
+                  aria-label="Tải ảnh Desktop lên"
                   className={`relative h-44 w-full overflow-hidden rounded-lg border-2 border-dashed flex flex-col items-center justify-center transition-all ${
                     desktopPreview 
                       ? 'border-solid border-border' 
@@ -421,7 +465,7 @@ export function BannerForm({
                       <span>Đang tải lên...</span>
                     </div>
                   )}
-                </div>
+                </button>
                 {form.formState.errors.desktop_image_object_key && (
                   <span className="text-[10px] text-destructive mt-1 font-medium">
                     {form.formState.errors.desktop_image_object_key.message}
@@ -454,8 +498,11 @@ export function BannerForm({
                   className="hidden"
                 />
 
-                <div
-                  onClick={() => !mobileUploading && !isSubmitting && mobileInputRef.current?.click()}
+                <button
+                  type="button"
+                  disabled={mobileUploading || isSubmitting}
+                  onClick={() => mobileInputRef.current?.click()}
+                  aria-label="Tải ảnh Mobile lên"
                   className={`relative h-44 w-full overflow-hidden rounded-lg border-2 border-dashed flex flex-col items-center justify-center transition-all ${
                     mobilePreview 
                       ? 'border-solid border-border' 
@@ -486,7 +533,7 @@ export function BannerForm({
                       <span>Đang tải lên...</span>
                     </div>
                   )}
-                </div>
+                </button>
               </div>
             </div>
 

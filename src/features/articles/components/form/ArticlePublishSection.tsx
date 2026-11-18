@@ -57,7 +57,6 @@ export function ArticlePublishSection({
   isPinned,
   setIsPinned,
   disabled = false,
-  onCreateTag,
   errors,
 }: ArticlePublishSectionProps) {
   // Map categories to autocomplete options (include article_count)
@@ -146,7 +145,7 @@ export function ArticlePublishSection({
           </Label>
           <Select
             value={status}
-            onValueChange={(val: any) => setStatus(val)}
+            onValueChange={(val: 'PUBLISHED' | 'SCHEDULED') => setStatus(val)}
             disabled={disabled}
           >
             <SelectTrigger id="status" className="h-10 text-sm cursor-pointer">

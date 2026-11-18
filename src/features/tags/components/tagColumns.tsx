@@ -157,6 +157,7 @@ export const getTagColumns = ({
           <Switch
             checked={tag.is_active}
             onCheckedChange={(checked) => onToggleStatus(tag.id, checked)}
+            aria-label={`Bật/tắt thẻ ${tag.name}`}
             className="scale-75 cursor-pointer"
           />
         </div>

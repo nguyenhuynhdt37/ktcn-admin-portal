@@ -23,7 +23,7 @@ import type {
 
 export const articleService = {
   list: async (params: ArticleListParams): Promise<ArticleListResponse> => {
-    const cleanedParams: Record<string, any> = {}
+    const cleanedParams: Record<string, unknown> = {}
     
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -45,7 +45,7 @@ export const articleService = {
   },
 
   searchAuthors: async (search: string): Promise<AuthorSearchItem[]> => {
-    const { data } = await httpClient.get<{ items: AuthorSearchItem[] }>('/users', {
+    const { data } = await httpClient.get<{ items: AuthorSearchItem[] } | AuthorSearchItem[]>('/users', {
       params: {
         page: 1,
         page_size: 10,
@@ -56,7 +56,7 @@ export const articleService = {
     if (Array.isArray(data)) {
       return data
     }
-    return (data as any)?.items || []
+    return data?.items || []
   },
 
   searchTags: async (search: string): Promise<TagSearchItem[]> => {
@@ -71,7 +71,7 @@ export const articleService = {
     if (Array.isArray(data)) {
       return data
     }
-    return (data as any)?.items || []
+    return data?.items || []
   },
 
   delete: async (id: string): Promise<{ success: boolean }> => {
@@ -84,13 +84,13 @@ export const articleService = {
     return data
   },
 
-  archive: async (id: string): Promise<any> => {
-    const { data } = await httpClient.patch<any>(`/admin/articles/${id}/archive`)
+  archive: async (id: string): Promise<Article> => {
+    const { data } = await httpClient.patch<Article>(`/admin/articles/${id}/archive`)
     return data
   },
 
-  publish: async (id: string): Promise<any> => {
-    const { data } = await httpClient.patch<any>(`/admin/articles/${id}/publish`)
+  publish: async (id: string): Promise<Article> => {
+    const { data } = await httpClient.patch<Article>(`/admin/articles/${id}/publish`)
     return data
   },
 
@@ -123,7 +123,7 @@ export const articleService = {
     if (Array.isArray(data)) {
       return data
     }
-    return (data as any)?.items || []
+    return data?.items || []
   },
 
   create: async (payload: ArticleCreatePayload): Promise<Article> => {

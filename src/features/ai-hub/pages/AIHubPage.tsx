@@ -31,8 +31,9 @@ export function AIHubPage() {
       toast.success(res.message || 'Đã cập nhật mô hình hoạt động chính thành công!')
       queryClient.invalidateQueries({ queryKey: ['ai-settings'] })
     },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.error?.message || 'Không thể cập nhật cấu hình mô hình.'
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: { message?: string } } } }
+      const msg = err?.response?.data?.error?.message || 'Không thể cập nhật cấu hình mô hình.'
       toast.error(msg)
     },
   })
@@ -143,11 +144,20 @@ export function AIHubPage() {
             page={logsPage}
             onPageChange={setLogsPage}
             modelFilter={logsModelFilter}
-            onModelFilterChange={setLogsModelFilter}
+            onModelFilterChange={(value) => {
+              setLogsModelFilter(value)
+              setLogsPage(1)
+            }}
             statusFilter={logsStatusFilter}
-            onStatusFilterChange={setLogsStatusFilter}
+            onStatusFilterChange={(value) => {
+              setLogsStatusFilter(value)
+              setLogsPage(1)
+            }}
             userFilter={logsUserFilter}
-            onUserFilterChange={setLogsUserFilter}
+            onUserFilterChange={(value) => {
+              setLogsUserFilter(value)
+              setLogsPage(1)
+            }}
             chatModels={aiSettings?.chat_models}
             embeddingModels={aiSettings?.embedding_models}
             usersList={usersData?.items}

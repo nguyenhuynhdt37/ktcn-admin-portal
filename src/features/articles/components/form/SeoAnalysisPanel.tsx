@@ -89,14 +89,14 @@ export function SeoAnalysisPanel({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="focusKeyword" className="text-xs font-semibold text-foreground/80">
+        <Label htmlFor={`focusKeyword-${lang}`} className="text-xs font-semibold text-foreground/80">
           Từ khóa chính cần tối ưu (Focus Keyword)
         </Label>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
             <Input
-              id="focusKeyword"
+              id={`focusKeyword-${lang}`}
               placeholder="Nhập từ khóa chính... (Ví dụ: tuyển sinh đại học)"
               value={focusKeyword}
               onChange={(e) => setFocusKeyword(e.target.value)}
@@ -213,14 +213,15 @@ export function SeoAnalysisPanel({
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">Từ khóa phụ đề xuất từ AI</span>
               <div className="flex flex-wrap gap-1.5">
                 {seo.analysis.focus_keywords.map((kw, idx) => (
-                  <span
+                  <button
+                    type="button"
                     key={idx}
                     onClick={() => setFocusKeyword(kw)}
                     className="px-2 py-0.5 rounded-[4px] bg-muted hover:bg-muted-foreground/20 text-[10px] font-medium text-foreground cursor-pointer transition-colors"
                     title="Click để chọn làm Từ khóa chính"
                   >
                     {kw}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>

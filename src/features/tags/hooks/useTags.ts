@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { SortingState, RowSelectionState } from '@tanstack/react-table'
+import type { SortingState, RowSelectionState, PaginationState } from '@tanstack/react-table'
 import { tagService } from '../services/tagService'
 import { toast } from 'sonner'
 import { useDebounce } from '@/shared/hooks/useDebounce'
@@ -40,17 +40,23 @@ export function useTags() {
     }
   }, [searchParams, setSearchParams])
 
+  // Table states (Chỉ giữ rowSelection ở local, sorting client-side)
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [sorting, setSorting] = useState<SortingState>([])
+
   // Đồng bộ search term từ ô input lên URL sau khi debounced
   useEffect(() => {
+    const trimmed = debouncedSearch.trim()
+    if (trimmed === urlSearch) return
     const params = new URLSearchParams(searchParams)
-    if (debouncedSearch.trim()) {
-      params.set('search', debouncedSearch.trim())
+    if (trimmed) {
+      params.set('search', trimmed)
     } else {
       params.delete('search')
     }
     params.set('page', '1') // reset trang khi tìm kiếm
     setSearchParams(params)
-  }, [debouncedSearch])
+  }, [debouncedSearch, urlSearch, searchParams, setSearchParams])
 
   // Custom setters để đồng bộ filter lên URL
   const handleActiveFilterChange = useCallback((value: string) => {
@@ -61,10 +67,11 @@ export function useTags() {
       params.delete('is_active')
     }
     params.set('page', '1')
+    setRowSelection({})
     setSearchParams(params)
   }, [searchParams, setSearchParams])
 
-  const handlePaginationChange = useCallback((value: any) => {
+  const handlePaginationChange = useCallback((value: PaginationState | ((old: PaginationState) => PaginationState)) => {
     const params = new URLSearchParams(searchParams)
     if (typeof value === 'function') {
       const next = value({ pageIndex, pageSize })
@@ -74,12 +81,9 @@ export function useTags() {
       params.set('page', String(value.pageIndex + 1))
       params.set('limit', String(value.pageSize))
     }
+    setRowSelection({})
     setSearchParams(params)
   }, [pageIndex, pageSize, searchParams, setSearchParams])
-
-  // Table states (Chỉ giữ rowSelection ở local, sorting client-side)
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-  const [sorting, setSorting] = useState<SortingState>([])
 
   // 1. Query: Fetch tag list
   const listParams = useMemo(() => {
@@ -103,7 +107,7 @@ export function useTags() {
     queryFn: () => tagService.list(listParams),
   })
 
-  const tags = tagData?.items || []
+  const tags = useMemo(() => tagData?.items || [], [tagData?.items])
   const totalItems = tagData?.total || 0
   const totalPages = tagData?.pages || 1
 

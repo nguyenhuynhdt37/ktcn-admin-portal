@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { useAuthStore } from '@/stores/authStore'
+import { isAdminUser, useAuthStore } from '@/stores/authStore'
 import { httpClient } from '@/services/http/client'
 import axios from 'axios'
 import { env } from '@/app/config/env'
@@ -66,12 +66,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    setTimeout(() => {
-      runInit()
+    const timer = window.setTimeout(() => {
+      void runInit()
     }, 0)
 
     return () => {
       active = false
+      window.clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -101,13 +102,26 @@ export function useAuth() {
   }
 
   const { user } = useAuthStore()
+  const isAdmin = isAdminUser(user)
 
   const hasPermission = (permission: string): boolean => {
+    if (!user) return false
+    if (isAdmin) return true
+    if (Array.isArray(user.permissions)) {
+      return user.permissions.includes(permission)
+    }
+    const adminOnlyPrefixes = ['audit.', 'user.', 'role.', 'settings.']
+    if (adminOnlyPrefixes.some((prefix) => permission.startsWith(prefix))) {
+      return false
+    }
     return true
   }
 
   const hasMenu = (menuCode: string): boolean => {
-    return true
+    if (!user) return false
+    if (isAdmin) return true
+    const adminOnlyMenus = new Set(['menu.dashboard', 'menu.user', 'menu.audit'])
+    return !adminOnlyMenus.has(menuCode)
   }
 
   return {

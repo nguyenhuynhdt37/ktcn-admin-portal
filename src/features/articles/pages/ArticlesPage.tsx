@@ -23,6 +23,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { DataTable } from '@/shared/components/DataTable'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,14 +79,14 @@ export function ArticlesPage() {
     const category_id = searchParams.get('category_id') || null
     const author_id = searchParams.get('author_id') || null
     const tag_ids = searchParams.get('tag_ids') ? searchParams.get('tag_ids')!.split(',') : null
-    const status = (searchParams.get('status') as any) || null
+    const status = (searchParams.get('status') as ArticleListParams['status']) || null
     const is_pinned = searchParams.get('is_pinned') === 'true' ? true : searchParams.get('is_pinned') === 'false' ? false : null
     const is_draft = searchParams.get('is_draft') === 'true'
     const deleted = searchParams.get('deleted') === 'true'
     
     // Mặc định sắp xếp theo ngày giờ xuất bản giảm dần (published_at - desc)
     const sort_by = searchParams.get('sort_by') || 'published_at'
-    const sort_dir = (searchParams.get('sort_dir') as any) || 'desc'
+    const sort_dir = (searchParams.get('sort_dir') as ArticleListParams['sort_dir']) || 'desc'
 
     return {
       page,
@@ -161,6 +162,11 @@ export function ArticlesPage() {
     queryFn: () => articleService.getStats(),
   })
 
+  const getApiErrorMessage = (err: unknown, fallback: string) => {
+    const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+    return errorObj?.response?.data?.error?.message || fallback
+  }
+
   // Delete Mutation (soft delete)
   const deleteMutation = useMutation({
     mutationFn: articleService.delete,
@@ -170,9 +176,8 @@ export function ArticlesPage() {
       queryClient.invalidateQueries({ queryKey: ['article-stats'] })
       setArticleToDelete(null)
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || 'Có lỗi xảy ra khi xóa bài viết.'
-      toast.error(msg)
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, 'Có lỗi xảy ra khi xóa bài viết.'))
     },
   })
 
@@ -184,9 +189,8 @@ export function ArticlesPage() {
       queryClient.invalidateQueries({ queryKey: ['articles'] })
       queryClient.invalidateQueries({ queryKey: ['article-stats'] })
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || 'Có lỗi xảy ra khi khôi phục bài viết.'
-      toast.error(msg)
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, 'Có lỗi xảy ra khi khôi phục bài viết.'))
     },
   })
 
@@ -198,9 +202,8 @@ export function ArticlesPage() {
       queryClient.invalidateQueries({ queryKey: ['articles'] })
       queryClient.invalidateQueries({ queryKey: ['article-stats'] })
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || 'Có lỗi xảy ra khi lưu trữ bài viết.'
-      toast.error(msg)
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, 'Có lỗi xảy ra khi lưu trữ bài viết.'))
     },
   })
 
@@ -212,9 +215,8 @@ export function ArticlesPage() {
       queryClient.invalidateQueries({ queryKey: ['articles'] })
       queryClient.invalidateQueries({ queryKey: ['article-stats'] })
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || 'Có lỗi xảy ra khi xuất bản bài viết.'
-      toast.error(msg)
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, 'Có lỗi xảy ra khi xuất bản bài viết.'))
     },
   })
 
@@ -226,9 +228,8 @@ export function ArticlesPage() {
       toast.success('Cập nhật thuộc tính bài viết thành công.')
       queryClient.invalidateQueries({ queryKey: ['articles'] })
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || 'Có lỗi xảy ra khi cập nhật thuộc tính.'
-      toast.error(msg)
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, 'Có lỗi xảy ra khi cập nhật thuộc tính.'))
     },
   })
 
@@ -241,9 +242,8 @@ export function ArticlesPage() {
       queryClient.invalidateQueries({ queryKey: ['article-stats'] })
       setRowSelection({}) // Reset lựa chọn sau khi thực thi
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || 'Có lỗi xảy ra khi thao tác hàng loạt.'
-      toast.error(msg)
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, 'Có lỗi xảy ra khi thao tác hàng loạt.'))
     },
   })
 
@@ -288,6 +288,11 @@ export function ArticlesPage() {
       .filter(Boolean)
   }, [rowSelection, data])
 
+  const [bulkConfirmAction, setBulkConfirmAction] = React.useState<{
+    action: 'archive' | 'publish' | 'delete' | 'restore'
+    actionText: string
+  } | null>(null)
+
   const handleBulkAction = (action: 'archive' | 'publish' | 'delete' | 'restore') => {
     if (selectedIds.length === 0) return
     
@@ -307,12 +312,7 @@ export function ArticlesPage() {
         break
     }
 
-    if (confirm(`Bạn có chắc chắn muốn thực hiện ${actionText} hàng loạt đối với ${selectedIds.length} bài viết đã chọn?`)) {
-      bulkMutation.mutate({
-        article_ids: selectedIds,
-        action,
-      })
-    }
+    setBulkConfirmAction({ action, actionText })
   }
 
   // Định nghĩa cột table bằng việc gọi helper getArticleColumns từ file tách biệt
@@ -578,6 +578,27 @@ export function ArticlesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ConfirmDialog
+        open={!!bulkConfirmAction}
+        onOpenChange={(open) => !open && setBulkConfirmAction(null)}
+        title="Xác nhận thao tác hàng loạt"
+        description={
+          bulkConfirmAction
+            ? `Bạn có chắc chắn muốn thực hiện ${bulkConfirmAction.actionText} hàng loạt đối với ${selectedIds.length} bài viết đã chọn?`
+            : ''
+        }
+        variant={bulkConfirmAction?.action === 'delete' ? 'destructive' : 'default'}
+        onConfirm={() => {
+          if (bulkConfirmAction) {
+            bulkMutation.mutate({
+              article_ids: selectedIds,
+              action: bulkConfirmAction.action,
+            })
+            setBulkConfirmAction(null)
+          }
+        }}
+      />
     </div>
   )
 }

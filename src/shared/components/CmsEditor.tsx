@@ -1,7 +1,50 @@
-import { useRef, useEffect, memo } from 'react'
+import { useRef, useEffect, useState, memo } from 'react'
 import { Editor } from '@tinymce/tinymce-react'
 import { httpClient } from '@/services/http/client'
 import { getMediaUrl } from '@/features/articles/utils/media'
+import { toast } from 'sonner'
+import { validateImageFile } from '@/shared/utils/security'
+
+const TINYMCE_SCRIPT_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/tinymce/7.1.1/tinymce.min.js'
+const TINYMCE_SCRIPT_SRI = 'sha384-NTTCdghHbVcvXVpSNFHK+xc2hj/fkzHEL8Tea31kCQpGtbSMa2A/JWptV2akdED/'
+
+let tinymceScriptPromise: Promise<void> | null = null
+
+function ensureTinyMceLoaded(): Promise<void> {
+  if (typeof window !== 'undefined' && 'tinymce' in window && (window as { tinymce?: unknown }).tinymce) {
+    return Promise.resolve()
+  }
+  if (tinymceScriptPromise) {
+    return tinymceScriptPromise
+  }
+  tinymceScriptPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${TINYMCE_SCRIPT_SRC}"]`)
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true })
+      existing.addEventListener('error', () => reject(new Error('Failed to load TinyMCE')), { once: true })
+      return
+    }
+    const script = document.createElement('script')
+    script.src = TINYMCE_SCRIPT_SRC
+    script.integrity = TINYMCE_SCRIPT_SRI
+    script.crossOrigin = 'anonymous'
+    script.referrerPolicy = 'origin'
+    script.onload = () => resolve()
+    script.onerror = () => {
+      tinymceScriptPromise = null
+      reject(new Error('Failed to load TinyMCE'))
+    }
+    document.head.appendChild(script)
+  })
+  return tinymceScriptPromise
+}
+
+interface TinyMceEditorInstance {
+  mode: {
+    get: () => string
+    set: (mode: string) => void
+  }
+}
 
 interface CmsEditorProps {
   /** Nội dung HTML */
@@ -23,7 +66,25 @@ export const CmsEditor = memo(function CmsEditor({
   minHeight = 250,
   maxHeight = 600,
 }: CmsEditorProps) {
-  const editorRef = useRef<any>(null)
+  const editorRef = useRef<TinyMceEditorInstance | null>(null)
+  const [scriptReady, setScriptReady] = useState(
+    () => typeof window !== 'undefined' && Boolean((window as { tinymce?: unknown }).tinymce)
+  )
+
+  useEffect(() => {
+    if (scriptReady) return
+    let mounted = true
+    ensureTinyMceLoaded()
+      .then(() => {
+        if (mounted) setScriptReady(true)
+      })
+      .catch((err) => {
+        console.error('TinyMCE SRI load error:', err)
+      })
+    return () => {
+      mounted = false
+    }
+  }, [scriptReady])
 
   const handleEditorChange = (content: string) => {
     onChange?.(content)
@@ -53,8 +114,9 @@ export const CmsEditor = memo(function CmsEditor({
           border: none !important;
         }
       `}</style>
+      {scriptReady && (
       <Editor
-        tinymceScriptSrc="https://cdnjs.cloudflare.com/ajax/libs/tinymce/7.1.1/tinymce.min.js"
+        tinymceScriptSrc={TINYMCE_SCRIPT_SRC}
         onInit={(_evt, editor) => {
           editorRef.current = editor
           // Thiết lập trạng thái ban đầu chuẩn xác để tránh race condition
@@ -83,10 +145,19 @@ export const CmsEditor = memo(function CmsEditor({
           branding: false,
           promotion: false,
           // Upload dragged/pasted images directly to MinIO backend
-          images_upload_handler: (blobInfo) => new Promise(async (resolve, reject) => {
+          images_upload_handler: async (blobInfo) => {
+            const blob = blobInfo.blob()
+            const fileError = validateImageFile(
+              { type: blob.type || 'image/png', size: blob.size, name: blobInfo.filename() },
+              { maxSizeMb: 10 }
+            )
+            if (fileError) {
+              throw fileError
+            }
+
             try {
               const formData = new FormData()
-              formData.append('file', blobInfo.blob(), blobInfo.filename())
+              formData.append('file', blob, blobInfo.filename())
 
               const { data } = await httpClient.post<{ object_key: string }>('/admin/media/upload', formData, {
                 headers: {
@@ -94,13 +165,12 @@ export const CmsEditor = memo(function CmsEditor({
                 },
               })
 
-              const fullUrl = getMediaUrl(data.object_key)
-              resolve(fullUrl)
+              return getMediaUrl(data.object_key)
             } catch (error) {
               console.error('TinyMCE image upload failed:', error)
-              reject('Tải hình ảnh lên thất bại')
+              throw 'Tải hình ảnh lên thất bại'
             }
-          }),
+          },
           // Upload links/files (PDF, word docs) directly to MinIO backend via link dialog
           file_picker_callback: function (cb, _value, meta) {
             const input = document.createElement('input')
@@ -118,6 +188,17 @@ export const CmsEditor = memo(function CmsEditor({
               const file = (this as HTMLInputElement).files?.[0]
               if (!file) return
 
+              if (meta.filetype === 'image') {
+                const fileError = validateImageFile(file, { maxSizeMb: 10 })
+                if (fileError) {
+                  toast.error(fileError)
+                  return
+                }
+              } else if (file.size > 25 * 1024 * 1024) {
+                toast.error('Dung lượng tập tin không được vượt quá 25MB.')
+                return
+              }
+
               try {
                 const formData = new FormData()
                 formData.append('file', file, file.name)
@@ -132,7 +213,7 @@ export const CmsEditor = memo(function CmsEditor({
                 cb(fullUrl, { title: file.name, text: file.name })
               } catch (error) {
                 console.error('TinyMCE file upload failed:', error)
-                alert('Tải tập tin lên thất bại!')
+                toast.error('Tải tập tin lên thất bại!')
               }
             }
 
@@ -140,6 +221,7 @@ export const CmsEditor = memo(function CmsEditor({
           }
         }}
       />
+      )}
     </div>
   )
 })

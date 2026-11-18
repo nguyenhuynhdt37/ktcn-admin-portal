@@ -60,6 +60,7 @@ const positionFormResolver = zodResolver(positionFormSchema)
 
 interface PositionFormProps {
   initialData: Position | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSubmit: (values: any) => void
   onCancel: () => void
   isSubmitting: boolean
@@ -76,6 +77,7 @@ export function PositionForm({
   const [isTranslating, setIsTranslating] = useState(false)
   const [lastTranslatedVi, setLastTranslatedVi] = useState('')
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const form: any = useForm<PositionFormValues>({
     resolver: positionFormResolver,
     reValidateMode: 'onBlur',

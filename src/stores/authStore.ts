@@ -7,8 +7,13 @@ export interface User {
   full_name: string
   avatar_url: string | null
   roles: string[]
+  permissions?: string[]
   is_active: boolean
   is_admin?: boolean
+}
+
+export function isAdminUser(user: User | null | undefined): boolean {
+  return !!user?.is_admin || !!user?.roles?.includes('super_admin') || !!user?.roles?.includes('admin')
 }
 
 interface AuthState {

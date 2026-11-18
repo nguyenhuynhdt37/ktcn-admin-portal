@@ -1,4 +1,5 @@
-import { useState, useRef, useMemo } from 'react'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -32,6 +33,7 @@ import { teacherService } from '../services/teacherService'
 import { departmentService } from '@/features/departments/services/departmentService'
 import { positionService } from '@/features/positions/services/positionService'
 import { getMediaUrl } from '@/features/articles/utils/media'
+import { isValidWebsiteUrl, validateImageFile } from '@/shared/utils/security'
 import { httpClient } from '@/services/http/client'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { cn } from '@/lib/utils'
@@ -73,7 +75,7 @@ const teacherFormSchema = z.object({
     .trim()
     .max(255, { message: 'Địa chỉ website cá nhân không vượt quá 255 ký tự' })
     .refine(
-      (val) => !val || /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/.test(val),
+      (val) => !val || isValidWebsiteUrl(val),
       { message: 'Đường dẫn website không đúng định dạng' }
     )
     .nullable()
@@ -370,6 +372,13 @@ function TeacherFormInner({
   
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
+  const localAvatarUrlRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (localAvatarUrlRef.current) URL.revokeObjectURL(localAvatarUrlRef.current)
+    }
+  }, [])
   const [activeTab, setActiveTab] = useState<'vi' | 'en'>('vi')
   
   // Trạng thái loading cho các nút dịch tự động riêng lẻ
@@ -520,7 +529,6 @@ function TeacherFormInner({
       queryClient.invalidateQueries({ queryKey: ['teachers-stats'] })
       backToList(saved?.department_id)
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (err: any) => {
       const errorData = err?.response?.data?.error || err?.response?.data
       toast.error(errorData?.message || 'Không thể lưu hồ sơ giảng viên. Vui lòng thử lại.')
@@ -531,8 +539,17 @@ function TeacherFormInner({
     const file = e.target.files?.[0]
     if (!file) return
 
+    const fileError = validateImageFile(file, { maxSizeMb: 5 })
+    if (fileError) {
+      toast.error(fileError)
+      e.target.value = ''
+      return
+    }
+
     setAvatarUploading(true)
+    if (localAvatarUrlRef.current) URL.revokeObjectURL(localAvatarUrlRef.current)
     const localUrl = URL.createObjectURL(file)
+    localAvatarUrlRef.current = localUrl
     setLocalAvatarUrl(localUrl)
 
     try {
@@ -542,14 +559,21 @@ function TeacherFormInner({
       toast.success('Tải ảnh đại diện lên thành công!')
     } catch (err: any) {
       toast.error(err?.response?.data?.error?.message || 'Không thể tải ảnh lên.')
+      URL.revokeObjectURL(localUrl)
+      if (localAvatarUrlRef.current === localUrl) localAvatarUrlRef.current = null
       setLocalAvatarUrl(null)
     } finally {
       setAvatarUploading(false)
+      e.target.value = ''
     }
   }
 
   const handleRemoveAvatar = () => {
     form.setValue('avatar_object_key', '')
+    if (localAvatarUrlRef.current) {
+      URL.revokeObjectURL(localAvatarUrlRef.current)
+      localAvatarUrlRef.current = null
+    }
     setLocalAvatarUrl(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
@@ -937,7 +961,7 @@ function TeacherFormInner({
             <FormField
               control={form.control}
               name="avatar_object_key"
-              render={({ field, fieldState }) => (
+              render={({ fieldState }) => (
                 <Card className={cn("border shadow-xs text-center", fieldState.invalid && "border-destructive/50")}>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center justify-center gap-1">

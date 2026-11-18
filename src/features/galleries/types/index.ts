@@ -45,7 +45,7 @@ export interface CreateGalleryPayload {
   }[]
 }
 
-export interface UpdateGalleryPayload extends Partial<CreateGalleryPayload> {}
+export type UpdateGalleryPayload = Partial<CreateGalleryPayload>
 
 export interface GalleryPagination {
   items: Gallery[]

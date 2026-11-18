@@ -17,12 +17,12 @@ import {
   FileText
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/shared/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Badge } from '@/shared/components/ui/badge'
 import { teacherService } from '../services/teacherService'
 import { getMediaUrl } from '@/features/articles/utils/media'
 import { cn } from '@/lib/utils'
-import { sanitizeRichHtml } from '@/shared/utils/security'
+import { sanitizeHref, sanitizeRichHtml, toSafeExternalHref } from '@/shared/utils/security'
 
 export default function TeacherDetailPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -39,9 +39,6 @@ export default function TeacherDetailPage() {
   // Tính toán dữ liệu hiển thị theo ngôn ngữ được chọn
   const displayData = useMemo(() => {
     if (!teacher) return null
-
-    const hasViTranslation = !!teacher.translations?.vi
-    const hasEnTranslation = !!teacher.translations?.en
 
     if (activeTab === 'vi') {
       return {
@@ -271,7 +268,7 @@ export default function TeacherDetailPage() {
                 <div className="space-y-0.5 text-xs text-left">
                   <span className="font-semibold text-muted-foreground text-[10px] uppercase">Email làm việc</span>
                   {teacher.email ? (
-                    <a href={`mailto:${teacher.email}`} className="block font-semibold text-primary hover:underline truncate max-w-[200px]">
+                    <a href={sanitizeHref(`mailto:${teacher.email}`)} className="block font-semibold text-primary hover:underline truncate max-w-[200px]">
                       {teacher.email}
                     </a>
                   ) : (
@@ -307,11 +304,16 @@ export default function TeacherDetailPage() {
                 <Globe className="h-4.5 w-4.5 text-slate-400 shrink-0 mt-0.5" />
                 <div className="space-y-0.5 text-xs text-left">
                   <span className="font-semibold text-muted-foreground text-[10px] uppercase">Website cá nhân</span>
-                  {teacher.website ? (
-                    <a href={teacher.website} target="_blank" rel="noopener noreferrer" className="block font-semibold text-primary hover:underline truncate max-w-[200px]">
-                      {teacher.website.replace(/^https?:\/\//, '')}
-                    </a>
-                  ) : (
+                  {teacher.website ? (() => {
+                    const safeWebsite = toSafeExternalHref(teacher.website)
+                    return safeWebsite ? (
+                      <a href={safeWebsite} target="_blank" rel="noopener noreferrer" className="block font-semibold text-primary hover:underline truncate max-w-[200px]">
+                        {teacher.website.replace(/^https?:\/\//, '')}
+                      </a>
+                    ) : (
+                      <p className="font-semibold text-foreground truncate max-w-[200px]">{teacher.website}</p>
+                    )
+                  })() : (
                     <p className="text-muted-foreground font-medium">-</p>
                   )}
                 </div>

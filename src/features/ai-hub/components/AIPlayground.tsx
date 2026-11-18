@@ -50,12 +50,7 @@ export function AIPlayground({ chatModels, defaultModel, isLoadingModels }: AIPl
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([])
   
   const chatEndRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (defaultModel && !playgroundModel) {
-      setPlaygroundModel(defaultModel)
-    }
-  }, [defaultModel, playgroundModel])
+  const effectiveModel = playgroundModel || defaultModel
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -64,7 +59,7 @@ export function AIPlayground({ chatModels, defaultModel, isLoadingModels }: AIPl
   const playgroundMutation = useMutation({
     mutationFn: (promptText: string) =>
       aiHubService.callPlayground({
-        model: playgroundModel,
+        model: effectiveModel,
         prompt: promptText,
         system_prompt: systemPrompt || undefined,
         temperature,
@@ -88,8 +83,9 @@ export function AIPlayground({ chatModels, defaultModel, isLoadingModels }: AIPl
       queryClient.invalidateQueries({ queryKey: ['ai-logs'] })
       queryClient.invalidateQueries({ queryKey: ['ai-spend'] })
     },
-    onError: (error: any, variables, context) => {
-      const msg = error?.response?.data?.detail || error?.response?.data?.error?.message || 'Lỗi gọi mô hình AI.'
+    onError: (error: unknown, _variables, context) => {
+      const err = error as { response?: { data?: { detail?: string; error?: { message?: string } } } }
+      const msg = err?.response?.data?.detail || err?.response?.data?.error?.message || 'Lỗi gọi mô hình AI.'
       toast.error(msg)
       setChatHistory((prev) => [
         ...prev,
@@ -121,7 +117,7 @@ export function AIPlayground({ chatModels, defaultModel, isLoadingModels }: AIPl
             {isLoadingModels ? (
               <div className="h-9 w-full bg-muted animate-pulse rounded border" />
             ) : (
-              <Select value={playgroundModel} onValueChange={setPlaygroundModel}>
+              <Select value={effectiveModel} onValueChange={setPlaygroundModel}>
                 <SelectTrigger className="w-full bg-background h-9 text-xs cursor-pointer">
                   <SelectValue placeholder="Chọn model" />
                 </SelectTrigger>
@@ -251,10 +247,10 @@ export function AIPlayground({ chatModels, defaultModel, isLoadingModels }: AIPl
                         {msg.actual_model && (
                           <span className="flex items-center gap-1 font-mono">
                             • Thực tế: 
-                            <span className={msg.actual_model !== playgroundModel ? "text-amber-500 font-semibold" : ""}>
+                            <span className={msg.actual_model !== effectiveModel ? "text-amber-500 font-semibold" : ""}>
                               {msg.actual_model}
                             </span>
-                            {msg.actual_model !== playgroundModel && (
+                            {msg.actual_model !== effectiveModel && (
                               <Badge className="bg-amber-500/10 text-[8px] text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border-amber-500/20 h-4 px-1 rounded-sm scale-90">
                                 Fallback
                               </Badge>

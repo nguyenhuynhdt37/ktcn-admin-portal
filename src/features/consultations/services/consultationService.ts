@@ -34,7 +34,9 @@ export const consultationService = {
     const anchor = document.createElement('a')
     anchor.href = url
     anchor.download = 'danh-sach-tu-van-tuyen-sinh.csv'
+    document.body.appendChild(anchor)
     anchor.click()
-    URL.revokeObjectURL(url)
+    document.body.removeChild(anchor)
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
   },
 }

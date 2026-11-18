@@ -1,6 +1,6 @@
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
-import { Loader2, ArrowLeft, Eye, FileText, Languages } from 'lucide-react'
+import { Loader2, ArrowLeft, Eye, FileText, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
@@ -13,7 +13,7 @@ import { ArticleMediaSection } from './form/ArticleMediaSection'
 import { MyDraftsModal } from './form/MyDraftsModal'
 import { AiGenerateModal } from './form/AiGenerateModal'
 import { useArticleForm } from '../hooks/useArticleForm'
-import { Sparkles } from 'lucide-react'
+import type { ArticleGenerateByIdeaResponse } from '../types/articles.types'
 
 interface ArticleFormProps {
   articleId?: string | null
@@ -124,6 +124,10 @@ export function ArticleForm({ articleId, showDraftsFeature = true }: ArticleForm
     isFormDirty,
     handleSaveDraft,
     handleBackWithDraft,
+    backConfirmMode,
+    setBackConfirmMode,
+    confirmBackDiscard,
+    confirmBackSaveDraft,
     handleSubmit,
     isFormDisabled,
   } = useArticleForm({ articleId, showDraftsFeature })
@@ -132,7 +136,7 @@ export function ArticleForm({ articleId, showDraftsFeature = true }: ArticleForm
   const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null)
   const [isAiGenerateOpen, setIsAiGenerateOpen] = useState(false)
 
-  const handleAiGenerateSuccess = (data: any, targetLang: 'vi' | 'en') => {
+  const handleAiGenerateSuccess = (data: ArticleGenerateByIdeaResponse, targetLang: 'vi' | 'en') => {
     if (targetLang === 'vi') {
       setViTitle(data.title)
       setViExcerpt(data.excerpt)
@@ -523,6 +527,26 @@ export function ArticleForm({ articleId, showDraftsFeature = true }: ArticleForm
           confirmAction?.()
           setConfirmOpen(false)
         }}
+      />
+      <ConfirmDialog
+        open={backConfirmMode === 'discard'}
+        onOpenChange={(open) => !open && setBackConfirmMode(null)}
+        title="Xác nhận hủy bỏ"
+        description="Bạn có chắc chắn muốn hủy bỏ và quay lại danh sách bài viết? Mọi thay đổi chưa lưu sẽ bị mất."
+        confirmText="Hủy bỏ & Quay lại"
+        cancelText="Tiếp tục chỉnh sửa"
+        variant="destructive"
+        onConfirm={confirmBackDiscard}
+      />
+      <ConfirmDialog
+        open={backConfirmMode === 'draft'}
+        onOpenChange={(open) => !open && setBackConfirmMode(null)}
+        title="Lưu bản nháp trước khi quay lại?"
+        description="Bạn có muốn lưu bài viết này thành Bản nháp trước khi quay lại danh sách không?"
+        confirmText="Lưu nháp & Quay lại"
+        cancelText="Quay lại không lưu"
+        onConfirm={confirmBackSaveDraft}
+        onCancel={confirmBackDiscard}
       />
       <AiGenerateModal
         isOpen={isAiGenerateOpen}

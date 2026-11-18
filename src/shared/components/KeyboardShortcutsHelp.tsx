@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from '@/shared/components/ui/dialog'
 import { getModifierKey, getAltKey } from '@/shared/utils/os'
+import { isAdminUser, useAuthStore } from '@/stores/authStore'
 import { Keyboard, Layout, Navigation2, SunMoon } from 'lucide-react'
 
 interface KeyboardShortcutsHelpProps {
@@ -14,6 +15,8 @@ interface KeyboardShortcutsHelpProps {
 }
 
 export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelpProps) {
+  const { user } = useAuthStore()
+  const isAdmin = isAdminUser(user)
   const modKey = getModifierKey()
   const altKey = getAltKey()
 
@@ -27,16 +30,19 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
         { keys: ['?'], description: 'Mở bảng hướng dẫn phím tắt này' },
       ],
     },
-    {
-      title: 'Điều hướng nhanh',
-      icon: Navigation2,
-      shortcuts: [
-        { keys: [altKey, 'D'], description: 'Đi tới trang Tổng quan (Dashboard)' },
-        { keys: [altKey, 'U'], description: 'Đi tới trang Quản lý thành viên (Users)' },
-        { keys: [altKey, 'R'], description: 'Đi tới trang Quản lý Vai trò (Roles)' },
-        { keys: [altKey, 'L'], description: 'Đi tới trang Nhật ký hoạt động (Audit Logs)' },
-      ],
-    },
+    ...(isAdmin
+      ? [
+          {
+            title: 'Điều hướng nhanh',
+            icon: Navigation2,
+            shortcuts: [
+              { keys: [altKey, 'D'], description: 'Đi tới trang Tổng quan (Dashboard)' },
+              { keys: [altKey, 'U'], description: 'Đi tới trang Quản lý thành viên (Users)' },
+              { keys: [altKey, 'L'], description: 'Đi tới trang Nhật ký hoạt động (Audit Logs)' },
+            ],
+          },
+        ]
+      : []),
     {
       title: 'Giao diện & Tiện ích',
       icon: SunMoon,

@@ -62,14 +62,21 @@ export function DataTable<TData, TValue>({
   const isServerSort = sorting !== undefined && onSortingChange !== undefined
 
   const currentSorting = isServerSort ? sorting : internalSorting
-  const handleSortingChange = isServerSort ? onSortingChange : setInternalSorting
+  const handleSortingChange: OnChangeFn<SortingState> = (updaterOrValue) => {
+    if (isServerSort) {
+      const next = typeof updaterOrValue === 'function' ? updaterOrValue(currentSorting) : updaterOrValue
+      onSortingChange(next)
+    } else {
+      setInternalSorting(updaterOrValue)
+    }
+  }
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: isServerSide ? undefined : getPaginationRowModel(),
-    onSortingChange: handleSortingChange as any,
+    onSortingChange: handleSortingChange,
     getSortedRowModel: isServerSort ? undefined : getSortedRowModel(),
     onRowSelectionChange,
     enableRowSelection: true,

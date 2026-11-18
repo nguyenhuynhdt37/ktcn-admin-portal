@@ -2,7 +2,7 @@ import { httpClient } from '@/services/http/client'
 import type { UserDetail, UserCreatePayload } from '../types/users.types'
 
 export const usersService = {
-  list: async (params?: Record<string, any>) => {
+  list: async (params?: Record<string, string | number | boolean | undefined>) => {
     const { data } = await httpClient.get('/users', { params })
     return data
   },

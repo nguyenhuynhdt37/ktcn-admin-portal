@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -60,15 +60,16 @@ export type TagFormValues = z.infer<typeof tagFormSchema>
 
 interface UseTagFormProps {
   initialData: Tag | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSubmit: (values: any) => void
 }
 
 export function useTagForm({ initialData, onSubmit }: UseTagFormProps) {
   const [activeTab, setActiveTab] = useState<'vi' | 'en'>('vi')
   const [isTranslating, setIsTranslating] = useState(false)
-  const [lastTranslatedVi, setLastTranslatedVi] = useState('')
   const [showConfirm, setShowConfirm] = useState(false)
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const form: any = useForm<TagFormValues>({
     resolver: zodResolver(tagFormSchema),
     reValidateMode: 'onBlur',
@@ -133,9 +134,6 @@ export function useTagForm({ initialData, onSubmit }: UseTagFormProps) {
           }
         }
       })
-      if (initialData.translations?.vi?.name) {
-        setLastTranslatedVi(initialData.translations.vi.name)
-      }
     } else {
       form.reset({
         color: '',
@@ -146,7 +144,6 @@ export function useTagForm({ initialData, onSubmit }: UseTagFormProps) {
           en: { name: '', slug: '', description: '' }
         }
       })
-      setLastTranslatedVi('')
     }
     setActiveTab('vi')
   }, [initialData, form])
@@ -185,7 +182,6 @@ export function useTagForm({ initialData, onSubmit }: UseTagFormProps) {
         }
       }
 
-      setLastTranslatedVi(nameToTranslate)
       toast.success('Dịch tự động thành công!')
     } catch (err) {
       console.error('Lỗi dịch tự động:', err)

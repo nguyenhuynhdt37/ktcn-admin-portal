@@ -7,8 +7,39 @@ import { useAuthStore } from '@/stores/authStore'
 import { articleService } from '../services/articleService'
 import { SEO_CONFIG } from '../constants'
 import { generateSeoTitle, generateSeoDescription } from '@/shared/utils/seo'
-import type { ArticleCreatePayload } from '../types/articles.types'
+import type { ArticleCreatePayload, TagSearchItem } from '../types/articles.types'
 import { httpClient } from '@/services/http/client'
+
+interface InitialArticleFormValues {
+  viTitle: string
+  viSlug: string
+  viExcerpt: string
+  viContent: string
+  viSeoTitle: string
+  viSeoDescription: string
+  viCanonicalUrl: string
+  viRobots: string
+  viOgTitle: string
+  viOgDescription: string
+  enTitle: string
+  enSlug: string
+  enExcerpt: string
+  enContent: string
+  enSeoTitle: string
+  enSeoDescription: string
+  enCanonicalUrl: string
+  enRobots: string
+  enOgTitle: string
+  enOgDescription: string
+  categoryId: string
+  tagIds: string[]
+  status: 'PUBLISHED' | 'SCHEDULED'
+  publishAt: string
+  expireAt: string
+  thumbnailKey: string | null
+  coverKey: string | null
+  isPinned: boolean
+}
 
 function generateSlug(text: string): string {
   return text
@@ -52,7 +83,7 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
   const [isEnSeoDescriptionOverridden, setIsEnSeoDescriptionOverridden] = useState(false)
 
   // Ref lưu giá trị ban đầu để so sánh sự thay đổi (isDirty)
-  const initialValuesRef = useRef<any>(null)
+  const initialValuesRef = useRef<InitialArticleFormValues | null>(null)
 
   // --- STATE ĐA NGÔN NGỮ (VIỆT - ANH) ---
   // Tiếng Việt
@@ -91,6 +122,9 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
     if (!isViSeoTitleOverridden) {
       setViSeoTitle(generateSeoTitle(val))
     }
+    if (val.trim()) {
+      setErrors((prev) => ({ ...prev, vi: { ...prev.vi, title: undefined } }))
+    }
   }
 
   const handleSetEnTitle = (val: string) => {
@@ -112,6 +146,9 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
     if (!isViSeoDescriptionOverridden) {
       setViSeoDescription(generateSeoDescription(val, viExcerpt))
     }
+    if (val.replace(/<[^>]*>/g, '').trim()) {
+      setErrors((prev) => ({ ...prev, vi: { ...prev.vi, content: undefined } }))
+    }
   }
 
   const handleSetEnExcerpt = (val: string) => {
@@ -129,7 +166,13 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
   }
 
   // --- CẤU HÌNH CHUNG ---
-  const [categoryId, setCategoryId] = useState('')
+  const [categoryId, setCategoryIdState] = useState('')
+  const setCategoryId = (val: string) => {
+    setCategoryIdState(val)
+    if (val) {
+      setErrors((prev) => ({ ...prev, categoryId: undefined }))
+    }
+  }
   const [tagIds, setTagIds] = useState<string[]>([])
   const [status, setStatus] = useState<'PUBLISHED' | 'SCHEDULED'>('PUBLISHED')
   const [publishAt, setPublishAt] = useState('')
@@ -176,7 +219,8 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
 
   // Sync state with article detail in Edit Mode
   useEffect(() => {
-    if (isEditMode && articleDetail) {
+    if (!isEditMode || !articleDetail) return
+    const syncTimer = setTimeout(() => {
       // Bảo mật phía Frontend: Chặn chỉnh sửa nếu user hiện tại không phải tác giả của bài viết và không phải admin
       const authorId = articleDetail.author_id || articleDetail.author?.id
       const isAdmin = !!user?.is_admin || user?.roles?.includes('super_admin') || user?.roles?.includes('admin')
@@ -235,7 +279,7 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
       setIsEnSeoDescriptionOverridden(!!en.seo_description && en.seo_description.trim() !== expectedEnSeoDesc.trim())
 
       // Các trường chung
-      setCategoryId(articleDetail.category_id || articleDetail.category?.id || '')
+      setCategoryIdState(articleDetail.category_id || articleDetail.category?.id || '')
       setTagIds(articleDetail.tags?.map((t) => t.id) || [])
       
       const dbStatus = articleDetail.status
@@ -292,43 +336,28 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
         coverKey: articleDetail.cover_object_key || null,
         isPinned: articleDetail.is_pinned,
       }
-    }
-  }, [isEditMode, articleDetail])
-
-  // Real-time Clear Errors
-  useEffect(() => {
-    if (viTitle.trim()) {
-      setErrors((prev) => ({ ...prev, vi: { ...prev.vi, title: undefined } }))
-    }
-  }, [viTitle])
-
-  useEffect(() => {
-    if (categoryId) {
-      setErrors((prev) => ({ ...prev, categoryId: undefined }))
-    }
-  }, [categoryId])
-
-  useEffect(() => {
-    const cleanContent = viContent.replace(/<[^>]*>/g, '').trim()
-    if (cleanContent) {
-      setErrors((prev) => ({ ...prev, vi: { ...prev.vi, content: undefined } }))
-    }
-  }, [viContent])
-
-
+    }, 0)
+    return () => clearTimeout(syncTimer)
+  }, [isEditMode, articleDetail, navigate, user])
 
   // Debounce check slug - Tiếng Việt
   useEffect(() => {
     const trimmedTitle = viTitle.trim()
     if (!trimmedTitle) {
-      setViSlug('')
-      return
+      const clearTimer = setTimeout(() => setViSlug(''), 0)
+      return () => clearTimeout(clearTimer)
     }
 
     const rawSlug = generateSlug(trimmedTitle)
-    if (isEditMode && articleDetail?.translations?.vi && rawSlug === articleDetail.translations.vi.slug) {
-      setViSlug(articleDetail.translations.vi.slug)
-      return
+    if (
+      isEditMode &&
+      articleDetail?.translations?.vi &&
+      (trimmedTitle === (articleDetail.translations.vi.title || '').trim() ||
+        rawSlug === articleDetail.translations.vi.slug)
+    ) {
+      const origSlug = articleDetail.translations.vi.slug
+      const resetTimer = setTimeout(() => setViSlug(origSlug), 0)
+      return () => clearTimeout(resetTimer)
     }
 
     const timer = setTimeout(async () => {
@@ -351,14 +380,20 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
   useEffect(() => {
     const trimmedTitle = enTitle.trim()
     if (!trimmedTitle) {
-      setEnSlug('')
-      return
+      const clearTimer = setTimeout(() => setEnSlug(''), 0)
+      return () => clearTimeout(clearTimer)
     }
 
     const rawSlug = generateSlug(trimmedTitle)
-    if (isEditMode && articleDetail?.translations?.en && rawSlug === articleDetail.translations.en.slug) {
-      setEnSlug(articleDetail.translations.en.slug)
-      return
+    if (
+      isEditMode &&
+      articleDetail?.translations?.en &&
+      (trimmedTitle === (articleDetail.translations.en.title || '').trim() ||
+        rawSlug === articleDetail.translations.en.slug)
+    ) {
+      const origSlug = articleDetail.translations.en.slug
+      const resetTimer = setTimeout(() => setEnSlug(origSlug), 0)
+      return () => clearTimeout(resetTimer)
     }
 
     const timer = setTimeout(async () => {
@@ -477,9 +512,10 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
       queryClient.invalidateQueries({ queryKey: ['my-drafts-count'] })
       queryClient.invalidateQueries({ queryKey: ['my-drafts'] })
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
       toast.error(
-        err?.response?.data?.error?.message ||
+        errorObj?.response?.data?.error?.message ||
           'Không thể lưu thông tin bài viết'
       )
     },
@@ -503,7 +539,7 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
         }
       })
 
-      queryClient.setQueryData(['tags', 'all'], (oldTags: any) => {
+      queryClient.setQueryData(['tags', 'all'], (oldTags: TagSearchItem[] | undefined) => {
         const list = Array.isArray(oldTags) ? oldTags : []
         return [...list, newTag]
       })
@@ -511,8 +547,9 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
       toast.success(`Đã tạo nhanh thẻ tag "${name}" thành công!`)
       const labelName = newTag.translations?.vi?.name || newTag.name || name
       return { id: newTag.id, label: labelName, color: newTag.color }
-    } catch (err: any) {
-      const msg = err?.response?.data?.error?.message || 'Không thể tạo nhanh thẻ tag mới.'
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      const msg = errorObj?.response?.data?.error?.message || 'Không thể tạo nhanh thẻ tag mới.'
       toast.error(msg)
       throw err
     }
@@ -572,7 +609,13 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
 
   // Validate form
   const validateForm = (showToast = false): boolean => {
-    const newErrors: any = {}
+    const newErrors: {
+      vi?: { title?: string; content?: string }
+      en?: { title?: string; content?: string }
+      categoryId?: string
+      publishAt?: string
+      expireAt?: string
+    } = {}
     
     if (!viTitle.trim()) {
       newErrors.vi = { ...newErrors.vi, title: 'Tiêu đề tiếng Việt không được để trống' }
@@ -708,7 +751,7 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
     }
 
     saveMutation.mutate(payload, {
-      onSuccess: (data: any) => {
+      onSuccess: (data) => {
         toast.success('Đã lưu bản nháp thành công!')
         if (!isEditMode && data?.id) {
           setCurrentArticleId(data.id)
@@ -718,12 +761,12 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
     })
   }
 
+  const [backConfirmMode, setBackConfirmMode] = useState<'discard' | 'draft' | null>(null)
+
   // Back with Draft check
   const handleBackWithDraft = () => {
     if (!showDraftsFeature) {
-      if (window.confirm('Bạn có chắc chắn muốn hủy bỏ và quay lại danh sách bài viết? Mọi thay đổi chưa lưu sẽ bị mất.')) {
-        navigate('/articles')
-      }
+      setBackConfirmMode('discard')
       return
     }
 
@@ -732,11 +775,17 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
       return
     }
 
-    if (window.confirm('Bạn có muốn lưu bài viết này thành Bản nháp trước khi quay lại không?\n\n- Bấm OK để lưu nháp và quay lại.\n- Bấm Cancel để quay lại mà không lưu.')) {
-      handleSaveDraft(() => navigate('/articles'))
-    } else {
-      navigate('/articles')
-    }
+    setBackConfirmMode('draft')
+  }
+
+  const confirmBackDiscard = () => {
+    setBackConfirmMode(null)
+    navigate('/articles')
+  }
+
+  const confirmBackSaveDraft = () => {
+    setBackConfirmMode(null)
+    handleSaveDraft(() => navigate('/articles'))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -915,6 +964,10 @@ export function useArticleForm({ articleId, showDraftsFeature = true }: UseArtic
     validateForm,
     handleSaveDraft,
     handleBackWithDraft,
+    backConfirmMode,
+    setBackConfirmMode,
+    confirmBackDiscard,
+    confirmBackSaveDraft,
     handleSubmit,
     isFormDisabled,
   }

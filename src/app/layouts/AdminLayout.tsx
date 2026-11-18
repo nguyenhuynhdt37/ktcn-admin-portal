@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router'
-import { useAuthStore, type User as AuthUser } from '@/stores/authStore'
+import { useAuthStore, isAdminUser, type User as AuthUser } from '@/stores/authStore'
 import { useTheme } from '@/app/providers/ThemeProvider'
 import { httpClient } from '@/services/http/client'
 import { Button } from '@/shared/components/ui/button'
@@ -13,7 +13,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu'
-import { Drawer, DrawerContent, DrawerTrigger } from '@/shared/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/shared/components/ui/drawer'
 import {
   LayoutDashboard,
   Users,
@@ -26,12 +26,10 @@ import {
   Settings,
   FileText,
   FolderOpen,
-  Layers,
   FileSpreadsheet,
   Search,
   HelpCircle,
   Building,
-  Award,
   Briefcase,
   GraduationCap,
   Image,
@@ -174,7 +172,7 @@ interface SidebarContentProps {
 }
 
 function SidebarContent({ user, onClose }: SidebarContentProps) {
-  const isAdmin = !!user?.is_admin || user?.roles?.includes('super_admin') || user?.roles?.includes('admin')
+  const isAdmin = isAdminUser(user)
 
   // Flat list of navigation items with separator flags and group headers
   const navItems: (NavItem | NavSeparator | NavGroupHeader)[] = [
@@ -201,7 +199,6 @@ function SidebarContent({ user, onClose }: SidebarContentProps) {
     { label: 'Ngôn ngữ', href: '/languages', icon: Languages, permission: null },
     { label: 'Cấu hình giao diện', href: '/settings', icon: Settings, permission: null },
     { label: 'Thành viên', href: '/users', icon: Users, permission: null },
-    { label: 'Tính năng hệ thống', href: '/features', icon: Layers, permission: null },
     { label: 'Nhật ký hoạt động', href: '/audit-logs', icon: FileSpreadsheet, permission: 'menu.audit' },
   ]
 
@@ -291,6 +288,7 @@ function SidebarContent({ user, onClose }: SidebarContentProps) {
 
 export function AdminLayout() {
   const { user, logout } = useAuthStore()
+  const isAdmin = isAdminUser(user)
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -328,10 +326,10 @@ export function AdminLayout() {
   // 4. Phím tắt chuyển đổi Theme (Alt+T)
   useHotkeys('alt+t', () => setTheme(theme === 'light' ? 'dark' : 'light'))
 
-  // 5. Phím tắt điều hướng nhanh (Alt+D, Alt+U, Alt+R, Alt+L)
-  useHotkeys('alt+d', () => navigate('/dashboard'))
-  useHotkeys('alt+u', () => navigate('/users'))
-  useHotkeys('alt+l', () => navigate('/audit-logs'))
+  // 5. Phím tắt điều hướng nhanh (Alt+D, Alt+U, Alt+L - chỉ dành cho Admin)
+  useHotkeys('alt+d', () => navigate('/dashboard'), { enabled: isAdmin })
+  useHotkeys('alt+u', () => navigate('/users'), { enabled: isAdmin })
+  useHotkeys('alt+l', () => navigate('/audit-logs'), { enabled: isAdmin })
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
@@ -358,6 +356,7 @@ export function AdminLayout() {
                 </Button>
               </DrawerTrigger>
               <DrawerContent className="p-0 w-64 h-full">
+                <DrawerTitle className="sr-only">Menu điều hướng</DrawerTitle>
                 <SidebarContent user={user} onClose={() => setMobileOpen(false)} />
               </DrawerContent>
             </Drawer>
@@ -431,7 +430,6 @@ export function AdminLayout() {
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Đăng xuất</span>
-                  <DropdownMenuShortcut>{altKey}L</DropdownMenuShortcut>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

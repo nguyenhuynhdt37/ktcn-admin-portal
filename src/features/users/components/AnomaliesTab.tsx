@@ -58,7 +58,7 @@ export function AnomaliesTab({ userId }: AnomaliesTabProps) {
 
   if (!data) return null
 
-  const riskCfg = RISK_CONFIG[data.risk_level]
+  const riskCfg = RISK_CONFIG[data.risk_level] ?? RISK_CONFIG.LOW
 
   return (
     <div className="space-y-6">
@@ -124,7 +124,7 @@ export function AnomaliesTab({ userId }: AnomaliesTabProps) {
         ) : (
           <div className="space-y-3">
             {data.anomalies.map((anomaly, idx) => {
-              const cfg = SEVERITY_CONFIG[anomaly.severity]
+              const cfg = SEVERITY_CONFIG[anomaly.severity] ?? SEVERITY_CONFIG.LOW
               const Icon = cfg.icon
               return (
                 <div
@@ -136,7 +136,7 @@ export function AnomaliesTab({ userId }: AnomaliesTabProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">{ANOMALY_LABELS[anomaly.type]}</span>
+                      <span className="font-medium text-sm">{ANOMALY_LABELS[anomaly.type] ?? anomaly.type}</span>
                       <Badge variant="outline" className={`text-xs ${cfg.className}`}>
                         {anomaly.severity}
                       </Badge>

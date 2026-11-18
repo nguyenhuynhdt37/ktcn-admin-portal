@@ -4,6 +4,7 @@ import { usersService } from '../../services/usersService'
 import { getMediaUrl } from '@/features/articles/utils/media'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { toast } from 'sonner'
+import { validateImageFile } from '@/shared/utils/security'
 
 interface AvatarSectionProps {
   avatarUrl: string | null
@@ -28,6 +29,13 @@ export function AvatarSection({
     const file = e.target.files?.[0]
     if (!file) return
 
+    const fileError = validateImageFile(file, { maxSizeMb: 2 })
+    if (fileError) {
+      toast.error(fileError)
+      e.target.value = ''
+      return
+    }
+
     setIsUploading(true)
     try {
       const res = await usersService.uploadAvatar(file)
@@ -35,10 +43,12 @@ export function AvatarSection({
       const url = await usersService.getMediaUrl(res.id)
       setAvatarUrl(getMediaUrl(url))
       toast.success('Tải ảnh đại diện lên thành công!')
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error?.message || 'Không thể tải ảnh đại diện lên')
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      toast.error(errorObj?.response?.data?.error?.message || 'Không thể tải ảnh đại diện lên')
     } finally {
       setIsUploading(false)
+      e.target.value = ''
     }
   }
 

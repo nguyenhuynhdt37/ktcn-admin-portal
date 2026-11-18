@@ -30,8 +30,9 @@ export function EmbeddingSettingsPage() {
       toast.success(res.message || 'Đã cập nhật mô hình Vector hóa (Embedding) chính thành công!')
       queryClient.invalidateQueries({ queryKey: ['ai-settings'] })
     },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.detail || 'Không thể cập nhật cấu hình mô hình Embedding.'
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { detail?: string } } }
+      const msg = err?.response?.data?.detail || 'Không thể cập nhật cấu hình mô hình Embedding.'
       toast.error(msg)
     },
   })
@@ -160,11 +161,20 @@ export function EmbeddingSettingsPage() {
           page={logsPage}
           onPageChange={setLogsPage}
           modelFilter={logsModelFilter}
-          onModelFilterChange={setLogsModelFilter}
+          onModelFilterChange={(value) => {
+            setLogsModelFilter(value)
+            setLogsPage(1)
+          }}
           statusFilter={logsStatusFilter}
-          onStatusFilterChange={setLogsStatusFilter}
+          onStatusFilterChange={(value) => {
+            setLogsStatusFilter(value)
+            setLogsPage(1)
+          }}
           userFilter={logsUserFilter}
-          onUserFilterChange={setLogsUserFilter}
+          onUserFilterChange={(value) => {
+            setLogsUserFilter(value)
+            setLogsPage(1)
+          }}
           chatModels={aiSettings?.chat_models}
           embeddingModels={aiSettings?.embedding_models}
           usersList={usersData?.items}

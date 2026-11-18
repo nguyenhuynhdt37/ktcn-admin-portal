@@ -28,8 +28,9 @@ export function SecurityTab() {
       setNewPassword('')
       setConfirmPassword('')
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || 'Đổi mật khẩu thất bại'
+    onError: (err: unknown) => {
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      const msg = errorObj?.response?.data?.error?.message || 'Đổi mật khẩu thất bại'
       toast.error(msg)
     },
   })
@@ -67,6 +68,7 @@ export function SecurityTab() {
             <button
               type="button"
               onClick={() => setShowCurrent(!showCurrent)}
+              aria-label={showCurrent ? 'Ẩn mật khẩu hiện tại' : 'Hiện mật khẩu hiện tại'}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
             >
               {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -87,6 +89,7 @@ export function SecurityTab() {
             <button
               type="button"
               onClick={() => setShowNew(!showNew)}
+              aria-label={showNew ? 'Ẩn mật khẩu mới' : 'Hiện mật khẩu mới'}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
             >
               {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -110,6 +113,7 @@ export function SecurityTab() {
             <button
               type="button"
               onClick={() => setShowConfirm(!showConfirm)}
+              aria-label={showConfirm ? 'Ẩn mật khẩu xác nhận' : 'Hiện mật khẩu xác nhận'}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
             >
               {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

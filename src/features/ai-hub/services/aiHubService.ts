@@ -19,7 +19,7 @@ export const aiHubService = {
     activeModel?: string,
     activeEmbeddingModel?: string
   ): Promise<{ message: string }> => {
-    const payload: Record<string, any> = {}
+    const payload: Record<string, string> = {}
     if (activeModel !== undefined) payload.active_model = activeModel
     if (activeEmbeddingModel !== undefined) payload.active_embedding_model = activeEmbeddingModel
 
@@ -35,7 +35,7 @@ export const aiHubService = {
     userId?: string,
     modelType?: string
   ): Promise<AILogListResponse> => {
-    const params: Record<string, any> = {
+    const params: Record<string, string | number> = {
       page,
       page_size: pageSize,
     }
@@ -49,7 +49,7 @@ export const aiHubService = {
   },
 
   getAISpend: async (period = 'day', modelType?: string): Promise<AISpendResponse> => {
-    const params: Record<string, any> = { period }
+    const params: Record<string, string> = { period }
     if (modelType) params.model_type = modelType
 
     const response = await httpClient.get<AISpendResponse>('/ai-hub/spend', { params })

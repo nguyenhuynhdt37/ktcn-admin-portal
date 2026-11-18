@@ -12,9 +12,10 @@ import {
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
-import { Dialog, DialogContent } from '@/shared/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/shared/components/ui/dialog'
 import { SearchableSelect } from '@/shared/components/SearchableSelect'
 import { DataTable } from '@/shared/components/DataTable'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { BannerForm } from '../components/BannerForm'
 import { getBannerColumns } from '../components/bannerColumns'
 import { bannerService } from '../services/bannerService'
@@ -41,6 +42,7 @@ export function BannersPage() {
   // UI states
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingBannerId, setEditingBannerId] = useState<string | null>(null)
+  const [bannerToDelete, setBannerToDelete] = useState<string | null>(null)
 
   // Filters & Table states (URL Search Params)
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -72,15 +74,17 @@ export function BannersPage() {
 
   // Đồng bộ search term từ ô input lên URL sau khi debounced
   useEffect(() => {
+    const trimmed = debouncedSearchQuery.trim()
+    if (trimmed === urlSearch) return
     const params = new URLSearchParams(searchParams)
-    if (debouncedSearchQuery.trim()) {
-      params.set('search', debouncedSearchQuery.trim())
+    if (trimmed) {
+      params.set('search', trimmed)
     } else {
       params.delete('search')
     }
     params.set('page', '1') // reset trang khi tìm kiếm
     setSearchParams(params)
-  }, [debouncedSearchQuery])
+  }, [debouncedSearchQuery, urlSearch, searchParams, setSearchParams])
 
   const handlePositionFilterChange = useCallback((val: string) => {
     const params = new URLSearchParams(searchParams)
@@ -90,6 +94,7 @@ export function BannersPage() {
       params.delete('position')
     }
     params.set('page', '1')
+    setRowSelection({})
     setSearchParams(params)
   }, [searchParams, setSearchParams])
 
@@ -103,7 +108,7 @@ export function BannersPage() {
     desc: sortDir === 'desc',
   }], [sortBy, sortDir])
 
-  const setPagination = useCallback((value: any) => {
+  const setPagination = useCallback((value: PaginationState | ((old: PaginationState) => PaginationState)) => {
     const params = new URLSearchParams(searchParams)
     if (typeof value === 'function') {
       const next = value({ pageIndex, pageSize })
@@ -113,10 +118,11 @@ export function BannersPage() {
       params.set('page', String(value.pageIndex + 1))
       params.set('page_size', String(value.pageSize))
     }
+    setRowSelection({})
     setSearchParams(params)
   }, [pageIndex, pageSize, searchParams, setSearchParams])
 
-  const setSorting = useCallback((value: any) => {
+  const setSorting = useCallback((value: SortingState | ((old: SortingState) => SortingState)) => {
     const params = new URLSearchParams(searchParams)
     const nextSorting = typeof value === 'function' ? value(sorting) : value
     if (nextSorting.length > 0) {
@@ -124,6 +130,7 @@ export function BannersPage() {
       params.set('sort_dir', nextSorting[0].desc ? 'desc' : 'asc')
       params.set('page', '1')
     }
+    setRowSelection({})
     setSearchParams(params)
   }, [sorting, searchParams, setSearchParams])
 
@@ -231,10 +238,8 @@ export function BannersPage() {
   }, [])
 
   const handleDelete = useCallback((id: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa banner này?')) {
-      deleteMutation.mutate(id)
-    }
-  }, [deleteMutation])
+    setBannerToDelete(id)
+  }, [])
 
   const handleToggleStatus = useCallback((id: string, is_active: boolean) => {
     toggleStatusMutation.mutate({ id, is_active })
@@ -370,6 +375,9 @@ export function BannersPage() {
       {/* Dialog Form Add/Edit Modal */}
       <Dialog open={isFormOpen} onOpenChange={(open) => !open && handleCancelForm()}>
         <DialogContent className="sm:max-w-[960px] p-0 overflow-hidden border h-[85vh] max-h-[85vh] flex flex-col">
+          <DialogTitle className="sr-only">
+            {editingBannerId ? 'Cập nhật Banner' : 'Thêm Banner mới'}
+          </DialogTitle>
           {editingBannerId && isFetchingDetail ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -385,6 +393,21 @@ export function BannersPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!bannerToDelete}
+        onOpenChange={(open) => !open && setBannerToDelete(null)}
+        title="Xác nhận xóa banner"
+        description="Bạn có chắc chắn muốn xóa banner này?"
+        confirmText="Xóa"
+        variant="destructive"
+        onConfirm={() => {
+          if (bannerToDelete) {
+            deleteMutation.mutate(bannerToDelete)
+            setBannerToDelete(null)
+          }
+        }}
+      />
     </div>
   )
 }

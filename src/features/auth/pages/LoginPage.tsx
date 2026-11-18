@@ -1,16 +1,17 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useNavigate, useLocation } from 'react-router'
-import { useAuthStore } from '@/stores/authStore'
+import { isAdminUser, useAuthStore } from '@/stores/authStore'
+import { toSafeInternalPath } from '@/shared/utils/security'
 import { httpClient } from '@/services/http/client'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/components/ui/form'
 import { toast } from 'sonner'
-import { ShieldAlert, User, Lock, Eye, EyeOff, GraduationCap } from 'lucide-react'
+import { ShieldAlert, User, Lock, Eye, EyeOff } from 'lucide-react'
 import logoDhVinh from '@/assets/logo-dhvinh.png'
 
 const loginSchema = z.object({
@@ -32,8 +33,6 @@ export function LoginPage() {
   const [retryAfter, setRetryAfter] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard'
-
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -49,25 +48,25 @@ export function LoginPage() {
     }
   }, [])
 
-  const startCountdown = useCallback((seconds: number) => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    setRetryAfter(seconds)
-
-    timerRef.current = setInterval(() => {
-      setRetryAfter((prev) => {
-        if (prev <= 1) {
-          if (timerRef.current) clearInterval(timerRef.current)
-          timerRef.current = null
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-  }, [])
-
   const isLocked = retryAfter > 0
 
   const onSubmit = async (data: LoginFormValues) => {
+    const startCountdown = (seconds: number) => {
+      if (timerRef.current) clearInterval(timerRef.current)
+      setRetryAfter(seconds)
+
+      timerRef.current = setInterval(() => {
+        setRetryAfter((prev) => {
+          if (prev <= 1) {
+            if (timerRef.current) clearInterval(timerRef.current)
+            timerRef.current = null
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    }
+
     try {
       await httpClient.post('/auth/login', {
         username: data.username,
@@ -76,9 +75,15 @@ export function LoginPage() {
 
       const userResponse = await httpClient.get('/auth/me')
       const user = userResponse.data
-      const isAdmin = !!user.is_admin || user.roles?.includes('super_admin') || user.roles?.includes('admin')
+      const isAdmin = isAdminUser(user)
       const defaultPath = isAdmin ? '/dashboard' : '/articles'
-      const targetPath = (location.state as { from?: { pathname: string } })?.from?.pathname || defaultPath
+      const rawFrom = (location.state as { from?: { pathname: string } })?.from?.pathname
+      const safeFrom = toSafeInternalPath(rawFrom, defaultPath)
+      const adminOnlyPrefix = ['/dashboard', '/users', '/audit-logs']
+      const targetPath =
+        !isAdmin && adminOnlyPrefix.some((prefix) => safeFrom === prefix || safeFrom.startsWith(`${prefix}/`))
+          ? defaultPath
+          : safeFrom
 
       login(user, '')
       toast.success('Đăng nhập thành công!')
@@ -136,7 +141,7 @@ export function LoginPage() {
         )}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={(e) => void form.handleSubmit(onSubmit)(e)} className="space-y-4">
             <FormField
               control={form.control}
               name="username"
@@ -179,6 +184,7 @@ export function LoginPage() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         disabled={isLocked}
+                        aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                         className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center bg-transparent border-none outline-hidden"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

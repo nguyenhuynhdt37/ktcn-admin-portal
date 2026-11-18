@@ -10,23 +10,38 @@ export interface AutocompleteOption {
   id: string
   label: string
   color?: string
-  [key: string]: any
+  slug?: string
+  username?: string
+  avatar_url?: string | null
+  article_count?: number
 }
 
-interface AutocompleteSelectProps {
+interface BaseAutocompleteSelectProps {
   placeholder?: string
   emptyMessage?: string
   searchPlaceholder?: string
   onSearch?: (query: string) => Promise<AutocompleteOption[]>
   options?: AutocompleteOption[]
-  value: any // string | string[]
-  onChange: (value: any) => void
-  isMulti?: boolean
-  multiple?: boolean
   renderOption?: (option: AutocompleteOption) => React.ReactNode
   disabled?: boolean
   onCreateOption?: (query: string) => Promise<AutocompleteOption>
 }
+
+interface SingleAutocompleteSelectProps extends BaseAutocompleteSelectProps {
+  isMulti?: false
+  multiple?: false
+  value: string | null | undefined
+  onChange: (value: string | null) => void
+}
+
+interface MultiAutocompleteSelectProps extends BaseAutocompleteSelectProps {
+  isMulti?: boolean
+  multiple?: boolean
+  value: string[] | null | undefined
+  onChange: (value: string[]) => void
+}
+
+type AutocompleteSelectProps = SingleAutocompleteSelectProps | MultiAutocompleteSelectProps
 
 export function AutocompleteSelect({
   placeholder = 'Chọn...',
@@ -53,25 +68,22 @@ export function AutocompleteSelect({
   // Cache to store loaded options mapping id -> option details
   const [selectedOptionsMap, setSelectedOptionsMap] = React.useState<Record<string, AutocompleteOption>>({})
 
-  // Update selectedOptionsMap when staticOptions change
-  React.useEffect(() => {
-    if (staticOptions) {
-      const newMap: Record<string, AutocompleteOption> = { ...selectedOptionsMap }
-      staticOptions.forEach((opt) => {
-        newMap[opt.id] = opt
-      })
-      setSelectedOptionsMap(newMap)
-    }
-  }, [staticOptions])
+  const emitChange = (nextValue: string | string[] | null) => {
+    ;(onChange as (val: string | string[] | null) => void)(nextValue)
+  }
 
-  // Debounced search logic or local filtering
-  React.useEffect(() => {
+  const displayedOptions = React.useMemo(() => {
     if (staticOptions) {
-      const filtered = staticOptions.filter((opt) =>
+      return staticOptions.filter((opt) =>
         opt.label.toLowerCase().includes(query.toLowerCase())
       )
-      setOptions(filtered)
-    } else if (onSearch) {
+    }
+    return options
+  }, [staticOptions, options, query])
+
+  // Debounced search logic for async search
+  React.useEffect(() => {
+    if (!staticOptions && onSearch) {
       let active = true
       
       const fetchOptions = async () => {
@@ -105,14 +117,16 @@ export function AutocompleteSelect({
 
   // Extract selected list to show on trigger button
   const selectedList = React.useMemo(() => {
+    const resolveOpt = (id: string) =>
+      staticOptions?.find((o) => o.id === id) || selectedOptionsMap[id] || { id, label: id }
     if (actualIsMulti) {
       const ids = Array.isArray(value) ? value : []
-      return ids.map((id) => selectedOptionsMap[id] || { id, label: id })
+      return ids.map(resolveOpt)
     } else {
-      if (!value) return []
-      return [selectedOptionsMap[value] || { id: value, label: value }]
+      if (!value || Array.isArray(value)) return []
+      return [resolveOpt(value)]
     }
-  }, [value, actualIsMulti, selectedOptionsMap])
+  }, [value, actualIsMulti, selectedOptionsMap, staticOptions])
 
   const handleSelect = (option: AutocompleteOption) => {
     setSelectedOptionsMap((prev) => ({ ...prev, [option.id]: option }))
@@ -120,12 +134,12 @@ export function AutocompleteSelect({
     if (actualIsMulti) {
       const currentValues = Array.isArray(value) ? value : []
       if (currentValues.includes(option.id)) {
-        onChange(currentValues.filter((id) => id !== option.id))
+        emitChange(currentValues.filter((id) => id !== option.id))
       } else {
-        onChange([...currentValues, option.id])
+        emitChange([...currentValues, option.id])
       }
     } else {
-      onChange(value === option.id ? null : option.id)
+      emitChange(value === option.id ? null : option.id)
       setOpen(false)
     }
   }
@@ -134,9 +148,9 @@ export function AutocompleteSelect({
     e.stopPropagation()
     if (actualIsMulti) {
       const currentValues = Array.isArray(value) ? value : []
-      onChange(currentValues.filter((id) => id !== optionId))
+      emitChange(currentValues.filter((id) => id !== optionId))
     } else {
-      onChange(null)
+      emitChange(null)
     }
   }
 
@@ -151,10 +165,10 @@ export function AutocompleteSelect({
       if (actualIsMulti) {
         const currentValues = Array.isArray(value) ? value : []
         if (!currentValues.includes(newOption.id)) {
-          onChange([...currentValues, newOption.id])
+          emitChange([...currentValues, newOption.id])
         }
       } else {
-        onChange(newOption.id)
+        emitChange(newOption.id)
         setOpen(false)
       }
       setQuery('')
@@ -166,7 +180,7 @@ export function AutocompleteSelect({
   }
 
   // Check if current search query already exists in options
-  const queryExists = options.some(
+  const queryExists = displayedOptions.some(
     (opt) => opt.label.toLowerCase() === query.trim().toLowerCase()
   )
 
@@ -226,14 +240,14 @@ export function AutocompleteSelect({
             onValueChange={setQuery}
           />
           <CommandList>
-            {isLoading && options.length === 0 && (
+            {isLoading && displayedOptions.length === 0 && (
               <div className="flex items-center justify-center p-4 text-sm text-muted-foreground gap-2">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 Đang tìm kiếm...
               </div>
             )}
             
-            {!isLoading && options.length === 0 && !onCreateOption && (
+            {!isLoading && displayedOptions.length === 0 && !onCreateOption && (
               <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">
                 {emptyMessage}
               </CommandEmpty>
@@ -259,7 +273,7 @@ export function AutocompleteSelect({
             )}
 
             <CommandGroup>
-              {options.map((option) => {
+              {displayedOptions.map((option) => {
                 const isSelected = actualIsMulti
                   ? (Array.isArray(value) ? value : []).includes(option.id)
                   : value === option.id

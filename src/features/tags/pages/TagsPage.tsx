@@ -32,8 +32,6 @@ export function TagsPage() {
     setDeleteTarget,
     rowSelection,
     setRowSelection,
-    sorting,
-    setSorting,
     pagination,
     setPagination,
     search,
@@ -218,6 +216,9 @@ export function TagsPage() {
       {/* Dialog Form (Add/Edit Modal) */}
       <Dialog open={isFormOpen} onOpenChange={(open) => !open && handleCancelForm()}>
         <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border">
+          <DialogTitle className="sr-only">
+            {editingTagId ? 'Cập nhật thẻ' : 'Thêm thẻ mới'}
+          </DialogTitle>
           {editingTagId && isFetchingDetail ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />

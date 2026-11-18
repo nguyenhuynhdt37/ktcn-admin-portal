@@ -52,17 +52,20 @@ export function ArticleFilters({ filters, onChange, onReset }: ArticleFiltersPro
     return () => clearTimeout(timer)
   }, [searchVal, filters.search])
 
-  // Sync state if filters reset externally
-  React.useEffect(() => {
-    setSearchVal(filters.search || '')
-  }, [filters.search])
-
-  const handleFilterChange = (key: keyof ArticleListParams, value: any) => {
+  const handleFilterChange = <K extends keyof ArticleListParams>(
+    key: K,
+    value: ArticleListParams[K]
+  ) => {
     onChange({
       ...filters,
       [key]: value,
       page: 1, // Reset về trang 1 khi lọc thay đổi
     })
+  }
+
+  const handleReset = () => {
+    setSearchVal('')
+    onReset()
   }
 
   // Wrappers for Autocomplete Search functions
@@ -96,8 +99,10 @@ export function ArticleFilters({ filters, onChange, onReset }: ArticleFiltersPro
   }, [])
 
   const hasActiveFilters = React.useMemo(() => {
-    const { page, page_size, sort_by, sort_dir, deleted, ...rest } = filters
-    return Object.values(rest).some((val) => val !== undefined && val !== null && val !== '')
+    const ignoredKeys = new Set(['page', 'page_size', 'sort_by', 'sort_dir', 'deleted'])
+    return Object.entries(filters).some(
+      ([key, val]) => !ignoredKeys.has(key) && val !== undefined && val !== null && val !== ''
+    )
   }, [filters])
 
   return (
@@ -178,7 +183,7 @@ export function ArticleFilters({ filters, onChange, onReset }: ArticleFiltersPro
               type="button"
               variant="ghost"
               size="icon"
-              onClick={onReset}
+              onClick={handleReset}
               className="h-9 w-9 text-muted-foreground hover:text-foreground cursor-pointer"
               title="Đặt lại bộ lọc"
             >

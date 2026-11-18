@@ -61,8 +61,18 @@ export const slugify = (str: string): string => {
     .replace(/^-+|-+$/g, '')
 }
 
+interface RawTranslationItem {
+  language_code?: string
+  language?: { code?: string }
+  name?: string
+  slug?: string
+  description?: string
+  seo_title?: string
+  seo_description?: string
+}
+
 // Helper parse translations an toàn
-export const parseTranslations = (rawTranslations: any) => {
+export const parseTranslations = (rawTranslations: unknown) => {
   const result = {
     vi: { ...INITIAL_TRANSLATION },
     en: { ...INITIAL_TRANSLATION },
@@ -71,10 +81,10 @@ export const parseTranslations = (rawTranslations: any) => {
   if (!rawTranslations) return result
 
   if (Array.isArray(rawTranslations)) {
-    rawTranslations.forEach((item: any) => {
+    rawTranslations.forEach((item: RawTranslationItem) => {
       const code = item.language_code || item.language?.code
       if (code === 'vi' || code === 'en') {
-        result[code as 'vi' | 'en'] = {
+        result[code] = {
           name: item.name || '',
           slug: item.slug || '',
           description: item.description || '',
@@ -84,10 +94,11 @@ export const parseTranslations = (rawTranslations: any) => {
       }
     })
   } else if (typeof rawTranslations === 'object') {
-    ;['vi', 'en'].forEach((code) => {
-      const item = rawTranslations[code]
+    const transMap = rawTranslations as Record<string, RawTranslationItem | undefined>
+    ;(['vi', 'en'] as const).forEach((code) => {
+      const item = transMap[code]
       if (item) {
-        result[code as 'vi' | 'en'] = {
+        result[code] = {
           name: item.name || '',
           slug: item.slug || '',
           description: item.description || '',
@@ -138,48 +149,50 @@ export function useCategoryForm({
 
   // Đổ dữ liệu khi mở Edit
   useEffect(() => {
-    if (mode === 'edit' && categoryDetail) {
-      const parsed = parseTranslations(categoryDetail.translations)
-      
-      // Fallback
-      if (!parsed.vi.name && categoryDetail.name) parsed.vi.name = categoryDetail.name
-      if (!parsed.vi.slug && categoryDetail.slug) parsed.vi.slug = categoryDetail.slug
-      if (!parsed.vi.description && categoryDetail.description) parsed.vi.description = categoryDetail.description
+    const timer = setTimeout(() => {
+      if (mode === 'edit' && categoryDetail) {
+        const parsed = parseTranslations(categoryDetail.translations)
+        
+        // Fallback
+        if (!parsed.vi.name && categoryDetail.name) parsed.vi.name = categoryDetail.name
+        if (!parsed.vi.slug && categoryDetail.slug) parsed.vi.slug = categoryDetail.slug
+        if (!parsed.vi.description && categoryDetail.description) parsed.vi.description = categoryDetail.description
 
-      // Tự động điền fallback SEO nếu trống
-      ;['vi', 'en'].forEach((code) => {
-        const lang = code as 'vi' | 'en'
-        if (!parsed[lang].seo_title && parsed[lang].name) {
-          parsed[lang].seo_title = parsed[lang].name.substring(0, 60)
-        }
-        if (!parsed[lang].seo_description && parsed[lang].description) {
-          parsed[lang].seo_description = parsed[lang].description.substring(0, 160)
-        }
-      })
+        // Tự động điền fallback SEO nếu trống
+        ;(['vi', 'en'] as const).forEach((lang) => {
+          if (!parsed[lang].seo_title && parsed[lang].name) {
+            parsed[lang].seo_title = parsed[lang].name.substring(0, 60)
+          }
+          if (!parsed[lang].seo_description && parsed[lang].description) {
+            parsed[lang].seo_description = parsed[lang].description.substring(0, 160)
+          }
+        })
 
-      setForm({
-        parent_id: categoryDetail.parent_id,
-        status: ((categoryDetail.status || 'ACTIVE').toUpperCase() as CategoryStatus) || 'ACTIVE',
-        is_visible: categoryDetail.is_visible !== false,
-        thumbnail_id: categoryDetail.thumbnail_id || null,
-        is_weekly_schedule: categoryDetail.is_weekly_schedule === true,
-        sort_order: categoryDetail.sort_order || 0,
-        translations: parsed
-      })
+        setForm({
+          parent_id: categoryDetail.parent_id,
+          status: ((categoryDetail.status || 'ACTIVE').toUpperCase() as CategoryStatus) || 'ACTIVE',
+          is_visible: categoryDetail.is_visible !== false,
+          thumbnail_id: categoryDetail.thumbnail_id || null,
+          is_weekly_schedule: categoryDetail.is_weekly_schedule === true,
+          sort_order: categoryDetail.sort_order || 0,
+          translations: parsed
+        })
 
-      setShowValidationErrors(false)
-    } else if (mode === 'create') {
-      setForm({
-        ...INITIAL_FORM,
-        parent_id: createParentId
-      })
-      setShowValidationErrors(false)
-    }
+        setShowValidationErrors(false)
+      } else if (mode === 'create') {
+        setForm({
+          ...INITIAL_FORM,
+          parent_id: createParentId
+        })
+        setShowValidationErrors(false)
+      }
+    }, 0)
+    return () => clearTimeout(timer)
   }, [categoryDetail, mode, createParentId])
 
   // Cập nhật trường dùng chung
   const handleFieldChange = useCallback(
-    (field: keyof FormState, value: any) => {
+    <K extends keyof FormState>(field: K, value: FormState[K]) => {
       setForm((prev) => ({ ...prev, [field]: value }))
     },
     []
@@ -275,7 +288,7 @@ export function useCategoryForm({
       })
 
       toast.success('Đã dịch tự động sang Tiếng Anh thành công!')
-    } catch (err: any) {
+    } catch {
       toast.error('Sinh bản dịch tự động thất bại.')
     } finally {
       setIsTranslating(false)
@@ -319,8 +332,9 @@ export function useCategoryForm({
       setForm((prev) => ({ ...prev, thumbnail_id: data.id }))
       setThumbnailUrl(urlRes.data.url)
       toast.success('Đã tải lên ảnh đại diện danh mục!')
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error?.message || 'Tải ảnh lên thất bại')
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      toast.error(errorObj?.response?.data?.error?.message || 'Tải ảnh lên thất bại')
     } finally {
       setIsUploadingThumbnail(false)
     }
@@ -345,22 +359,18 @@ export function useCategoryForm({
 
   useEffect(() => {
     const currentSlug = form.translations?.[activeTab]?.slug
-    if (!currentSlug || currentSlug.trim() === '') {
-      setSlugCheck({ isChecking: false, exists: false, suggested: null })
-      return
-    }
-
-    // So sánh với slug cũ trong cơ sở dữ liệu
     const parsedDetailTrans = categoryDetail ? parseTranslations(categoryDetail.translations) : null
     const oldSlug = parsedDetailTrans?.[activeTab]?.slug || (activeTab === 'vi' ? categoryDetail?.slug : '')
-    if (oldSlug && currentSlug === oldSlug) {
-      setSlugCheck({ isChecking: false, exists: false, suggested: null })
-      return
+
+    if (!currentSlug || currentSlug.trim() === '' || (oldSlug && currentSlug === oldSlug)) {
+      const resetTimer = setTimeout(() => {
+        setSlugCheck({ isChecking: false, exists: false, suggested: null })
+      }, 0)
+      return () => clearTimeout(resetTimer)
     }
 
-    setSlugCheck((prev) => ({ ...prev, isChecking: true }))
-
     const timer = setTimeout(async () => {
+      setSlugCheck((prev) => ({ ...prev, isChecking: true }))
       try {
         const res = await categoryService.checkSlug(currentSlug, selectedCategoryId, activeTab)
         setSlugCheck({
@@ -396,15 +406,24 @@ export function useCategoryForm({
   }, [isTabComplete])
 
   // Xử lý lỗi API
-  const handleApiError = (error: any, defaultMsg: string) => {
-    const errorCode = error?.response?.data?.error_code || error?.response?.data?.error?.code
+  const handleApiError = (error: unknown, defaultMsg: string) => {
+    const err = error as {
+      response?: {
+        data?: {
+          error_code?: string
+          message?: string
+          error?: { code?: string; message?: string }
+        }
+      }
+    }
+    const errorCode = err?.response?.data?.error_code || err?.response?.data?.error?.code || ''
     const errorMap: Record<string, string> = {
       CIRCULAR_REFERENCE: 'Không thể gán danh mục cha làm con của chính nó hoặc danh mục con của nó.',
       CATEGORY_HAS_CHILDREN: 'Không thể xóa danh mục này vì đang chứa danh mục con. Vui lòng xóa các danh mục con trước.',
       CATEGORY_NOT_FOUND: 'Danh mục không tồn tại hoặc đã bị xóa.',
       AI_BUDGET_EXCEEDED: 'Hạn mức AI tháng của hệ thống đã dùng hết.',
     }
-    toast.error(errorMap[errorCode] || error?.response?.data?.message || error?.response?.data?.error?.message || defaultMsg)
+    toast.error(errorMap[errorCode] || err?.response?.data?.message || err?.response?.data?.error?.message || defaultMsg)
   }
 
   // Mutation lưu (Update hoặc Create)
@@ -457,7 +476,7 @@ export function useCategoryForm({
         queryClient.invalidateQueries({ queryKey: ['category-detail', selectedCategoryId] })
       }
     },
-    onError: (error: any) => handleApiError(error, mode === 'create' ? 'Tạo danh mục thất bại.' : 'Cập nhật danh mục thất bại.'),
+    onError: (error: unknown) => handleApiError(error, mode === 'create' ? 'Tạo danh mục thất bại.' : 'Cập nhật danh mục thất bại.'),
   })
 
   // Validation 2 ngôn ngữ nghiêm ngặt

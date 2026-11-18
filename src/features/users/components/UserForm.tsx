@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Loader2, ArrowLeft } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
-import { useAuthStore } from '@/stores/authStore'
+import { isAdminUser, useAuthStore } from '@/stores/authStore'
 import { usersService } from '../services/usersService'
 import { AvatarSection } from './form/AvatarSection'
 import { AccountDetailsSection } from './form/AccountDetailsSection'
@@ -22,22 +22,43 @@ export function UserForm({ userId }: UserFormProps) {
   const { user: currentUser } = useAuthStore()
 
   const isEditMode = !!userId
-  const isAdmin = !!currentUser?.is_admin || !!currentUser?.roles?.includes('super_admin')
+  const isAdmin = isAdminUser(currentUser)
   const isAuthorized = isAdmin || (isEditMode && userId === currentUser?.id)
   const canSave = isAuthorized
 
+  // Fetch user detail in Edit Mode
+  const { data: userDetail, isLoading: isLoadingDetail } = useQuery({
+    queryKey: ['users', userId],
+    queryFn: () => usersService.getDetail(userId!),
+    enabled: isEditMode,
+  })
+
   // Form States
-  const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
+  const [usernameState, setUsernameState] = useState<string | null>(null)
+  const [emailState, setEmailState] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [bio, setBio] = useState('')
-  const [avatarId, setAvatarId] = useState<string | null>(null)
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
-  const [isActive, setIsActive] = useState(true)
+  const [fullNameState, setFullName] = useState<string | null>(null)
+  const [phoneState, setPhone] = useState<string | null>(null)
+  const [bioState, setBio] = useState<string | null>(null)
+  const [avatarIdState, setAvatarId] = useState<string | null | undefined>(undefined)
+  const [avatarUrlState, setAvatarUrl] = useState<string | null | undefined>(undefined)
+  const [isActiveState, setIsActive] = useState<boolean | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+
+  const username = usernameState ?? (isEditMode && userDetail ? userDetail.username : '')
+  const email = emailState ?? (isEditMode && userDetail ? userDetail.email : '')
+  const fullName = fullNameState ?? (isEditMode && userDetail ? userDetail.full_name : '')
+  const phone = phoneState ?? (isEditMode && userDetail ? userDetail.phone || '' : '')
+  const bio = bioState ?? (isEditMode && userDetail ? userDetail.bio || '' : '')
+  const avatarId = avatarIdState !== undefined ? avatarIdState : (isEditMode && userDetail ? userDetail.avatar_id : null)
+  const avatarUrl =
+    avatarUrlState !== undefined
+      ? avatarUrlState
+      : isEditMode && userDetail?.avatar_url
+        ? getMediaUrl(userDetail.avatar_url)
+        : null
+  const isActive = isActiveState ?? (isEditMode && userDetail ? userDetail.is_active : true)
 
   // Real-time Email Duplicate Check with 500ms Debounce
   const [emailError, setEmailError] = useState<string | null>(null)
@@ -47,37 +68,28 @@ export function UserForm({ userId }: UserFormProps) {
   const [usernameError, setUsernameError] = useState<string | null>(null)
   const [isCheckingUsername, setIsCheckingUsername] = useState(false)
 
-  // Fetch user detail in Edit Mode
-  const { data: userDetail, isLoading: isLoadingDetail } = useQuery({
-    queryKey: ['users', userId],
-    queryFn: () => usersService.getDetail(userId!),
-    enabled: isEditMode,
-  })
-
-  // Sync state with user detail
-  useEffect(() => {
-    if (isEditMode && userDetail) {
-      setUsername(userDetail.username)
-      setEmail(userDetail.email)
-      setFullName(userDetail.full_name)
-      setPhone(userDetail.phone || '')
-      setBio(userDetail.bio || '')
-      setAvatarId(userDetail.avatar_id)
-      setIsActive(userDetail.is_active)
-      setAvatarUrl(userDetail.avatar_url ? getMediaUrl(userDetail.avatar_url) : null)
+  const setUsername = (val: string) => {
+    setUsernameState(val)
+    if (!val.trim() || !/^[a-zA-Z0-9_-]{3,30}$/.test(val)) {
+      setUsernameError(null)
     }
-  }, [isEditMode, userDetail])
+  }
+
+  const setEmail = (val: string) => {
+    setEmailState(val)
+    if (!val.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+      setEmailError(null)
+    }
+  }
 
   // Username check effect
   useEffect(() => {
     if (isEditMode || !username.trim()) {
-      setUsernameError(null)
       return
     }
 
     const usernameRegex = /^[a-zA-Z0-9_-]{3,30}$/
     if (!usernameRegex.test(username)) {
-      setUsernameError(null)
       return
     }
 
@@ -103,13 +115,11 @@ export function UserForm({ userId }: UserFormProps) {
   // Email check effect
   useEffect(() => {
     if (isEditMode || !email.trim()) {
-      setEmailError(null)
       return
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      setEmailError(null)
       return
     }
 
@@ -135,7 +145,7 @@ export function UserForm({ userId }: UserFormProps) {
   // Mutation Create / Update
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload: any = {
+      const basePayload = {
         full_name: fullName,
         phone: phone || null,
         bio: bio || null,
@@ -144,15 +154,17 @@ export function UserForm({ userId }: UserFormProps) {
       }
 
       if (isEditMode) {
-        if (password) {
-          payload.password = password
-        }
-        return usersService.update(userId!, payload)
+        return usersService.update(userId!, {
+          ...basePayload,
+          ...(password ? { password } : {}),
+        })
       } else {
-        payload.username = username
-        payload.email = email
-        payload.password = password
-        return usersService.create(payload)
+        return usersService.create({
+          ...basePayload,
+          username,
+          email,
+          password,
+        })
       }
     },
     onSuccess: () => {
@@ -160,8 +172,9 @@ export function UserForm({ userId }: UserFormProps) {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       navigate('/users')
     },
-    onError: (err: any) => {
-      const errorData = err?.response?.data?.error
+    onError: (err: unknown) => {
+      const errorObj = err as { response?: { data?: { error?: { code?: string; message?: string } } } }
+      const errorData = errorObj?.response?.data?.error
       const code = errorData?.code
 
       if (code === 'USERNAME_DUPLICATE') {

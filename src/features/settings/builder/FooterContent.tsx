@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { FooterBlock } from '../types/footer-builder'
 import type { SiteSettings } from '../types'
+import { sanitizeHref, toSafeExternalHref } from '@/shared/utils/security'
 
 export interface FooterNavigationColumn {
   title: string
@@ -33,12 +34,7 @@ export interface FooterContentProps {
 }
 
 function safeFooterHref(value?: string | null) {
-  const href = (value || '').trim()
-  const scheme = Array.from(href)
-    .filter((char) => char.charCodeAt(0) > 32 && char.charCodeAt(0) !== 127)
-    .join('')
-    .match(/^([a-z][a-z0-9+.-]*):/i)?.[1]
-  return !scheme || /^(https?|mailto|tel)$/i.test(scheme) ? href : '#'
+  return sanitizeHref(value, '#')
 }
 
 export function FooterBlockContent({
@@ -257,15 +253,22 @@ export function FooterBlockContent({
       content = (
         <p className="fb-copyright">
           {copyright.replace(/\{year\}/g, String(new Date().getFullYear()))}
-          {settings.developer_name && (
-            <>
-              {' '}
-              · {en ? 'Developed by ' : 'Phát triển bởi '}
-              <a href={href(settings.developer_url)} {...linkProps(true)}>
-                {settings.developer_name}
-              </a>
-            </>
-          )}
+          {settings.developer_name && (() => {
+            const devHref = toSafeExternalHref(settings.developer_url)
+            return (
+              <>
+                {' '}
+                · {en ? 'Developed by ' : 'Phát triển bởi '}
+                {devHref ? (
+                  <a href={devHref} {...linkProps(true)}>
+                    {settings.developer_name}
+                  </a>
+                ) : (
+                  <span>{settings.developer_name}</span>
+                )}
+              </>
+            )
+          })()}
         </p>
       )
       break

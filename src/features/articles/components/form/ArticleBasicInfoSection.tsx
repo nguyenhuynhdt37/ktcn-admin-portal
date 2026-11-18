@@ -36,7 +36,6 @@ export function ArticleBasicInfoSection({
   title,
   setTitle,
   slug,
-  setSlug,
   excerpt,
   setExcerpt,
   disabled = false,
@@ -71,9 +70,10 @@ export function ArticleBasicInfoSection({
       })
       setExcerpt(res.summary)
       toast.success('Tóm tắt bài viết bằng AI thành công!', { id: toastId })
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      toast.error(err?.response?.data?.error?.message || 'Tóm tắt bài viết thất bại. Vui lòng thử lại.', { id: toastId })
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      toast.error(errorObj?.response?.data?.error?.message || 'Tóm tắt bài viết thất bại. Vui lòng thử lại.', { id: toastId })
     } finally {
       setIsSummarizing(false)
     }
@@ -87,7 +87,7 @@ export function ArticleBasicInfoSection({
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label htmlFor="title" className="text-xs font-semibold text-foreground flex items-center gap-1">
+            <Label htmlFor={`title-${lang}`} className="text-xs font-semibold text-foreground flex items-center gap-1">
               Tiêu đề bài viết <span className="text-destructive">*</span>
             </Label>
             {showTranslateActions && onTranslateTitle && (
@@ -105,7 +105,7 @@ export function ArticleBasicInfoSection({
             )}
           </div>
           <Input
-            id="title"
+            id={`title-${lang}`}
             placeholder="Nhập tiêu đề của bài viết..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -121,7 +121,7 @@ export function ArticleBasicInfoSection({
 
         <div className="space-y-2">
           <div className="flex items-center gap-1.5">
-            <Label htmlFor="slug" className="text-xs font-semibold text-foreground">
+            <Label htmlFor={`slug-${lang}`} className="text-xs font-semibold text-foreground">
               Đường dẫn (Slug)
             </Label>
             {isCheckingSlug && (
@@ -132,7 +132,7 @@ export function ArticleBasicInfoSection({
             )}
           </div>
           <Input
-            id="slug"
+            id={`slug-${lang}`}
             placeholder={isCheckingSlug ? 'Đang tạo và kiểm tra đường dẫn tự động...' : 'Đường dẫn tự động sinh từ tiêu đề...'}
             value={slug}
             disabled={true}
@@ -143,7 +143,7 @@ export function ArticleBasicInfoSection({
 
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label htmlFor="excerpt" className="text-xs font-semibold text-foreground">
+            <Label htmlFor={`excerpt-${lang}`} className="text-xs font-semibold text-foreground">
               Tóm tắt ngắn (Excerpt)
             </Label>
             <div className="flex items-center gap-1.5">
@@ -176,7 +176,7 @@ export function ArticleBasicInfoSection({
             </div>
           </div>
           <Textarea
-            id="excerpt"
+            id={`excerpt-${lang}`}
             placeholder="Nhập đoạn giới thiệu/tóm tắt ngắn gọn của bài viết..."
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}

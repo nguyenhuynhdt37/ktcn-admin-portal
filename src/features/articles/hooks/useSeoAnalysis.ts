@@ -65,10 +65,11 @@ export function useSeoAnalysis({
       })
       setAnalysis(response)
       toast.success('Phân tích SEO thành công!', { id: toastId })
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
       toast.error(
-        err?.response?.data?.error?.message || 'Phân tích SEO thất bại. Vui lòng thử lại.',
+        errorObj?.response?.data?.error?.message || 'Phân tích SEO thất bại. Vui lòng thử lại.',
         { id: toastId }
       )
     } finally {

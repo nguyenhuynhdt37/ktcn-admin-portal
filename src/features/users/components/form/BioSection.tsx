@@ -100,10 +100,5 @@ export function BioSection({ bio, setBio, disabled }: BioSectionProps) {
     </div>
   ) : null
 
-  return (
-    <>
-      {inlineEditor}
-      {fullscreenEditor}
-    </>
-  )
+  return isFullscreen ? fullscreenEditor : inlineEditor
 }

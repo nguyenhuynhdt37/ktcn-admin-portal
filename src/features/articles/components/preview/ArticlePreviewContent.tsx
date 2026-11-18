@@ -77,6 +77,7 @@ export default function ArticlePreviewContent({
           alt={displayData.title}
           className="h-full w-full object-cover"
           onError={(e) => {
+            e.currentTarget.onerror = null
             e.currentTarget.src = fallbackCover
           }}
         />
@@ -121,7 +122,7 @@ export default function ArticlePreviewContent({
           </div>
           <div className="flex items-center gap-1.5">
             <Eye className="h-3.5 w-3.5" />
-            <span>{article.view_count.toLocaleString()} lượt xem</span>
+            <span>{(article.view_count ?? 0).toLocaleString()} lượt xem</span>
           </div>
           {article.reading_time > 0 && (
             <div className="flex items-center gap-1.5">

@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   DndContext,
   closestCorners,
@@ -21,6 +21,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Plus, Loader2, ChevronsUpDown, ChevronsDownUp, AlertTriangle } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { categoryService } from '../services/categoryService'
 import { SortableCategoryNode } from './SortableCategoryNode'
 import type { CategoryTreeNode, FlatCategoryNode } from '../types'
@@ -136,6 +137,13 @@ export function CategoryDragDropEditor({
   const [flatItems, setFlatItems] = useState<FlatCategoryNode[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [justDroppedId, setJustDroppedId] = useState<string | null>(null)
+  const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (dropTimerRef.current) clearTimeout(dropTimerRef.current)
+    }
+  }, [])
 
   // State lưu trữ danh sách ID các node bị thu gọn
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
@@ -167,6 +175,7 @@ export function CategoryDragDropEditor({
   }
 
   // State quản lý Placeholder động khi đang kéo
+  const [categoryToDelete, setCategoryToDelete] = useState<{ id: string; name: string } | null>(null)
   const [placeholderInfo, setPlaceholderInfo] = useState<{
     index: number
     depth: number
@@ -405,72 +414,70 @@ export function CategoryDragDropEditor({
       return
     }
 
-    const activeId = active.id as string
-
-    setFlatItems((prev) => {
-      const oldIndex = prev.findIndex((item) => item.id === activeId)
-      if (oldIndex === -1) {
-        setActiveId(null)
-        setPlaceholderInfo(null)
-        return prev
-      }
-
-      const draggedItem = prev[oldIndex]
-
-      // Nếu thả chuột tại chính vị trí cũ và độ sâu cũ thì không cần làm gì
-      if (cachedPlaceholder.index === oldIndex && cachedPlaceholder.depth === draggedItem.depth) {
-        setActiveId(null)
-        setPlaceholderInfo(null)
-        return prev
-      }
-
-      const descendants: FlatCategoryNode[] = []
-
-      let nextIdx = oldIndex + 1
-      while (nextIdx < prev.length && prev[nextIdx].depth > draggedItem.depth) {
-        descendants.push(prev[nextIdx])
-        nextIdx++
-      }
-
-      const itemsWithoutCluster = prev.filter(
-        (item) => item.id !== activeId && !descendants.some((d) => d.id === item.id)
-      )
-
-      const depthDiff = cachedPlaceholder.depth - draggedItem.depth
-      const updatedDraggedItem = {
-        ...draggedItem,
-        depth: cachedPlaceholder.depth,
-      }
-
-      const updatedDescendants = descendants.map((d) => ({
-        ...d,
-        depth: Math.max(1, Math.min(3, d.depth + depthDiff)),
-      }))
-
-      const result = [...itemsWithoutCluster]
-      result.splice(cachedPlaceholder.index, 0, updatedDraggedItem, ...updatedDescendants)
-
-      const finalized = recalculateParentsAndDepths(result)
-
-      setJustDroppedId(activeId)
-      setTimeout(() => {
-        setJustDroppedId(null)
-      }, 1500)
-
-      // AUTO-SAVE: Tự động lưu
-      const payload = finalized.map((item, index) => ({
-        id: item.id,
-        parent_id: item.parent_id,
-        sort_order: index * 10,
-      }))
-      
-      reorderMutation.mutate(payload)
-
+    const draggedId = active.id as string
+    const prev = flatItems
+    const oldIndex = prev.findIndex((item) => item.id === draggedId)
+    if (oldIndex === -1) {
       setActiveId(null)
       setPlaceholderInfo(null)
+      return
+    }
 
-      return finalized
-    })
+    const draggedItem = prev[oldIndex]
+
+    // Nếu thả chuột tại chính vị trí cũ và độ sâu cũ thì không cần làm gì
+    if (cachedPlaceholder.index === oldIndex && cachedPlaceholder.depth === draggedItem.depth) {
+      setActiveId(null)
+      setPlaceholderInfo(null)
+      return
+    }
+
+    const descendants: FlatCategoryNode[] = []
+
+    let nextIdx = oldIndex + 1
+    while (nextIdx < prev.length && prev[nextIdx].depth > draggedItem.depth) {
+      descendants.push(prev[nextIdx])
+      nextIdx++
+    }
+
+    const itemsWithoutCluster = prev.filter(
+      (item) => item.id !== draggedId && !descendants.some((d) => d.id === item.id)
+    )
+
+    const depthDiff = cachedPlaceholder.depth - draggedItem.depth
+    const updatedDraggedItem = {
+      ...draggedItem,
+      depth: cachedPlaceholder.depth,
+    }
+
+    const updatedDescendants = descendants.map((d) => ({
+      ...d,
+      depth: Math.max(1, Math.min(3, d.depth + depthDiff)),
+    }))
+
+    const result = [...itemsWithoutCluster]
+    result.splice(cachedPlaceholder.index, 0, updatedDraggedItem, ...updatedDescendants)
+
+    const finalized = recalculateParentsAndDepths(result)
+
+    setFlatItems(finalized)
+    setActiveId(null)
+    setPlaceholderInfo(null)
+
+    setJustDroppedId(draggedId)
+    if (dropTimerRef.current) clearTimeout(dropTimerRef.current)
+    dropTimerRef.current = setTimeout(() => {
+      setJustDroppedId(null)
+    }, 1500)
+
+    // AUTO-SAVE: Tự động lưu
+    const payload = finalized.map((item, index) => ({
+      id: item.id,
+      parent_id: item.parent_id,
+      sort_order: index * 10,
+    }))
+
+    reorderMutation.mutate(payload)
   }
 
   let displayItems = flatItems.map((item) => ({ ...item }))
@@ -745,11 +752,7 @@ export function CategoryDragDropEditor({
                       isGhost={item.isGhost}
                       isValid={item.isValid}
                       onEdit={() => onSelectItem(item.id)}
-                      onDelete={() => {
-                        if (confirm(`Bạn có chắc chắn muốn xóa danh mục "${item.name}" cùng toàn bộ danh mục con?`)) {
-                          deleteMutation.mutate(item.id)
-                        }
-                      }}
+                      onDelete={() => setCategoryToDelete({ id: item.id, name: item.name })}
                       onAddChild={() => onCreateItem?.(item.id)}
                       articleCount={item.article_count}
                       isTranslated={item.is_translated}
@@ -784,6 +787,25 @@ export function CategoryDragDropEditor({
           </DndContext>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!categoryToDelete}
+        onOpenChange={(open) => !open && setCategoryToDelete(null)}
+        title="Xác nhận xóa danh mục"
+        description={
+          categoryToDelete
+            ? `Bạn có chắc chắn muốn xóa danh mục "${categoryToDelete.name}" cùng toàn bộ danh mục con?`
+            : ''
+        }
+        confirmText="Xóa"
+        variant="destructive"
+        onConfirm={() => {
+          if (categoryToDelete) {
+            deleteMutation.mutate(categoryToDelete.id)
+            setCategoryToDelete(null)
+          }
+        }}
+      />
     </div>
   )
 }

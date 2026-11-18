@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useMemo, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -41,7 +42,6 @@ import {
   Settings,
   Eye,
   Target,
-  BookOpen,
   FlaskConical,
   Clock,
 } from 'lucide-react'
@@ -49,11 +49,12 @@ import { cn } from '@/lib/utils'
 import { httpClient } from '@/services/http/client'
 import { toast } from 'sonner'
 import { getMediaUrl } from '@/features/articles/utils/media'
+import { isValidWebsiteUrl, validateImageFile } from '@/shared/utils/security'
 import { CmsEditor } from '@/shared/components/CmsEditor'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { DepartmentSeoAnalysisPanel } from './DepartmentSeoAnalysisPanel'
 import { departmentService } from '../services/departmentService'
-import type { Department, DepartmentUnitType, DepartmentContentStatus } from '../types'
+import type { Department } from '../types'
 
 // ─── Zod Schema ───────────────────────────────────────────────────────────────
 
@@ -90,7 +91,7 @@ const departmentFormSchema = z.object({
     .trim()
     .max(255, { message: 'Đường dẫn website không vượt quá 255 ký tự' })
     .refine(
-      (val) => !val || /^(https?:\/\/)?([a-z0-9.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i.test(val),
+      (val) => !val || isValidWebsiteUrl(val),
       { message: 'Đường dẫn website không đúng định dạng (Ví dụ: test.univ.edu.vn)' }
     )
     .optional()
@@ -374,7 +375,6 @@ function DepartmentFormInner({
       queryClient.invalidateQueries({ queryKey: ['departments-stats'] })
       navigate('/departments')
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (err: any) => {
       const errorData = err?.response?.data?.error || err?.response?.data
       const errorCode = errorData?.error_code || errorData?.code
@@ -402,6 +402,16 @@ function DepartmentFormInner({
     const file = e.target.files?.[0]
     if (!file) return
 
+    const fileError = validateImageFile(file, {
+      maxSizeMb: 5,
+      allowSvg: fieldName === 'logo_object_key',
+    })
+    if (fileError) {
+      toast.error(fileError)
+      e.target.value = ''
+      return
+    }
+
     setUploading(true)
     const formData = new FormData()
     formData.append('file', file)
@@ -417,6 +427,7 @@ function DepartmentFormInner({
       toast.error(err?.response?.data?.error?.message || `Tải ${label} thất bại`)
     } finally {
       setUploading(false)
+      e.target.value = ''
     }
   }
 
@@ -619,7 +630,9 @@ function DepartmentFormInner({
           </div>
         </div>
       ) : (
-        <div
+        <button
+          type="button"
+          disabled={isUploading}
           onClick={() => !isUploading && inputRef.current?.click()}
           className={cn(
             "flex w-full cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed transition-all text-muted-foreground",
@@ -641,7 +654,7 @@ function DepartmentFormInner({
               <span className="text-[9px] text-muted-foreground/80 mt-0.5">Hỗ trợ JPG, PNG (tối đa 5MB)</span>
             </>
           )}
-        </div>
+        </button>
       )}
       {form.formState.errors[fieldName] && (
         <p className="text-[10px] font-medium text-destructive mt-1">

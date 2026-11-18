@@ -3,12 +3,15 @@ import { Bell, CheckCheck, LoaderCircle } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { Button } from '@/shared/components/ui/button'
 import { cn } from '@/lib/utils'
+import { toSafeInternalPath } from '@/shared/utils/security'
+import { toast } from 'sonner'
 import { notificationService } from '../services/notificationService'
 import type { AdminNotification } from '../types'
 
 export function AdminNotificationBell() {
   const navigate = useNavigate()
   const rootRef = useRef<HTMLDivElement>(null)
+  const mountedRef = useRef(true)
   const [isOpen, setIsOpen] = useState(false)
   const [items, setItems] = useState<AdminNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -17,19 +20,27 @@ export function AdminNotificationBell() {
   const refresh = async () => {
     try {
       const data = await notificationService.list()
+      if (!mountedRef.current) return
       setItems(data.items)
       setUnreadCount(data.unread_count)
+    } catch {
+      // Lỗi mạng định kỳ đã được log ở tầng HTTP; không crash UI thông báo
     } finally {
-      setIsLoading(false)
+      if (mountedRef.current) {
+        setIsLoading(false)
+      }
     }
   }
 
   useEffect(() => {
-    void refresh()
+    mountedRef.current = true
+    const initTimer = window.setTimeout(() => void refresh(), 0)
     const poll = window.setInterval(refresh, 30_000)
     const stream = new EventSource(notificationService.streamUrl, { withCredentials: true })
     stream.addEventListener('notification', () => void refresh())
     return () => {
+      mountedRef.current = false
+      window.clearTimeout(initTimer)
       window.clearInterval(poll)
       stream.close()
     }
@@ -46,17 +57,32 @@ export function AdminNotificationBell() {
 
   const openNotification = async (item: AdminNotification) => {
     if (!item.read_at) {
-      await notificationService.markRead(item.id)
-      setUnreadCount((count) => Math.max(0, count - 1))
+      const readAt = new Date().toISOString()
+      try {
+        await notificationService.markRead(item.id)
+        setItems((current) =>
+          current.map((entry) => (entry.id === item.id ? { ...entry, read_at: readAt } : entry))
+        )
+        setUnreadCount((count) => Math.max(0, count - 1))
+      } catch {
+        toast.error('Không thể đánh dấu thông báo đã đọc.')
+        return
+      }
     }
     setIsOpen(false)
-    if (item.related_url) navigate(item.related_url)
+    const safeTarget = toSafeInternalPath(item.related_url, '')
+    if (safeTarget) navigate(safeTarget)
   }
 
   const markAllRead = async () => {
-    await notificationService.markAllRead()
-    setItems((current) => current.map((item) => ({ ...item, read_at: new Date().toISOString() })))
-    setUnreadCount(0)
+    try {
+      await notificationService.markAllRead()
+      const now = new Date().toISOString()
+      setItems((current) => current.map((item) => ({ ...item, read_at: now })))
+      setUnreadCount(0)
+    } catch {
+      toast.error('Không thể đánh dấu tất cả thông báo đã đọc.')
+    }
   }
 
   return (
@@ -147,10 +173,12 @@ export function AdminNotificationBell() {
 }
 
 function formatDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
   return new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(value))
+  }).format(date)
 }

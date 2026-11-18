@@ -10,7 +10,7 @@ export function getMediaUrl(key: string | null | undefined): string {
   }
   const cleanKey = key.replace(/^\//, '')
   
-  let origin = ''
+  let origin: string
   try {
     origin = new URL(env.VITE_API_URL).origin
   } catch {

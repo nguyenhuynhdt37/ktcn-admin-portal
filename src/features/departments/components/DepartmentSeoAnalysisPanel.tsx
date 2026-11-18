@@ -248,14 +248,15 @@ export function DepartmentSeoAnalysisPanel({
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">Từ khóa phụ đề xuất từ AI</span>
               <div className="flex flex-wrap gap-1.5">
                 {analysis.focus_keywords.map((kw, idx) => (
-                  <span
+                  <button
+                    type="button"
                     key={idx}
                     onClick={() => seo.setFocusKeyword(kw)}
                     className="px-2 py-0.5 rounded-[4px] bg-muted hover:bg-muted-foreground/20 text-[10px] font-medium text-foreground cursor-pointer transition-colors"
                     title="Click để chọn làm Từ khóa chính"
                   >
                     {kw}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>

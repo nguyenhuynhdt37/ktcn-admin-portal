@@ -30,9 +30,11 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 import { DataTable } from '@/shared/components/DataTable'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 
-import { useAuthStore } from '@/stores/authStore'
+import { isAdminUser, useAuthStore } from '@/stores/authStore'
 import { usersService } from '../services/usersService'
+import { getMediaUrl } from '@/features/articles/utils/media'
 import type { UserData, RoleData } from '../types/users.types'
 
 export function UsersPage() {
@@ -40,8 +42,13 @@ export function UsersPage() {
   const queryClient = useQueryClient()
   const { user: currentUser } = useAuthStore()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [confirmUserAction, setConfirmUserAction] = useState<{
+    type: 'delete' | 'restore'
+    id: string
+    fullName: string
+  } | null>(null)
 
-  const isAdmin = !!currentUser?.is_admin || !!currentUser?.roles?.includes('super_admin')
+  const isAdmin = isAdminUser(currentUser)
   const isCallerSuperAdmin = currentUser?.roles?.includes('super_admin') || false
 
   // Permissions check
@@ -51,13 +58,15 @@ export function UsersPage() {
   const canDelete = isAdmin
 
   // Query Params from URL
-  const page = Math.max(0, parseInt(searchParams.get('page') || '1') - 1)
+  const parsedPage = Number.parseInt(searchParams.get('page') || '1', 10)
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage - 1 : 0
   const pageSize = 10
   const roleFilter = searchParams.get('role_code') || 'all'
   const isDeletedFilter = searchParams.get('is_deleted') === 'true'
   const statusFilter = isDeletedFilter ? 'deleted' : (searchParams.get('is_active') === 'true' ? 'active' : (searchParams.get('is_active') === 'false' ? 'inactive' : 'all'))
 
-  const [search, setSearch] = useState(searchParams.get('search') || '')
+  const urlSearch = searchParams.get('search') || ''
+  const [search, setSearch] = useState(urlSearch)
   const [debouncedSearch, setDebouncedSearch] = useState(search)
 
   // Debounce search input
@@ -68,17 +77,19 @@ export function UsersPage() {
     return () => clearTimeout(timer)
   }, [search])
 
-  // Sync search input with URL search params
+  // Sync search input with URL search params only when query value actually changes
   useEffect(() => {
+    const trimmed = debouncedSearch.trim()
+    if (trimmed === urlSearch) return
     const params = new URLSearchParams(searchParams)
-    if (debouncedSearch.trim()) {
-      params.set('search', debouncedSearch.trim())
+    if (trimmed) {
+      params.set('search', trimmed)
     } else {
       params.delete('search')
     }
     params.set('page', '1') // reset trang khi tìm kiếm
     setSearchParams(params)
-  }, [debouncedSearch])
+  }, [debouncedSearch, urlSearch, searchParams, setSearchParams])
 
   const handleRoleFilterChange = (val: string) => {
     const params = new URLSearchParams(searchParams)
@@ -143,8 +154,9 @@ export function UsersPage() {
       toast.success('Tài khoản đã được xóa mềm. Bạn có thể chuyển sang bộ lọc "Đã xóa" để khôi phục.')
       queryClient.invalidateQueries({ queryKey: ['users'] })
     },
-    onError: (err: any) => {
-      const errorData = err?.response?.data?.error
+    onError: (err: unknown) => {
+      const errorObj = err as { response?: { data?: { error?: { code?: string; message?: string } } } }
+      const errorData = errorObj?.response?.data?.error
       const code = errorData?.code
       if (code === 'SELF_DELETION_DENIED') {
         toast.error('Không thể thực hiện: Bạn không thể tự xóa chính tài khoản đang đăng nhập của mình.')
@@ -163,8 +175,9 @@ export function UsersPage() {
       toast.success('Khôi phục tài khoản thành công!')
       queryClient.invalidateQueries({ queryKey: ['users'] })
     },
-    onError: (err: any) => {
-      const errorData = err?.response?.data?.error
+    onError: (err: unknown) => {
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      const errorData = errorObj?.response?.data?.error
       toast.error(errorData?.message || 'Không thể khôi phục tài khoản')
     },
   })
@@ -205,7 +218,7 @@ export function UsersPage() {
             <div className="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-full border bg-muted items-center justify-center">
               {user.avatar_url ? (
                 <img
-                  src={user.avatar_url}
+                  src={getMediaUrl(user.avatar_url)}
                   alt={user.full_name}
                   className="aspect-square h-full w-full object-cover"
                 />
@@ -290,11 +303,13 @@ export function UsersPage() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="cursor-pointer text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-950/20"
-                    onClick={() => {
-                      if (confirm(`Bạn có chắc chắn muốn khôi phục thành viên "${user.full_name}"?`)) {
-                        restoreMutation.mutate(user.id)
-                      }
-                    }}
+                    onClick={() =>
+                      setConfirmUserAction({
+                        type: 'restore',
+                        id: user.id,
+                        fullName: user.full_name,
+                      })
+                    }
                   >
                     Khôi phục tài khoản
                   </DropdownMenuItem>
@@ -319,11 +334,13 @@ export function UsersPage() {
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="cursor-pointer text-destructive focus:bg-destructive/10"
-                        onClick={() => {
-                          if (confirm(`Bạn có chắc chắn muốn xóa thành viên "${user.full_name}"?`)) {
-                            deleteMutation.mutate(user.id)
-                          }
-                        }}
+                        onClick={() =>
+                          setConfirmUserAction({
+                            type: 'delete',
+                            id: user.id,
+                            fullName: user.full_name,
+                          })
+                        }
                       >
                         Xóa thành viên
                       </DropdownMenuItem>
@@ -412,6 +429,31 @@ export function UsersPage() {
           onPageChange={handlePageChange}
         />
       )}
+
+      <ConfirmDialog
+        open={!!confirmUserAction}
+        onOpenChange={(open) => !open && setConfirmUserAction(null)}
+        title={confirmUserAction?.type === 'delete' ? 'Xác nhận xóa thành viên' : 'Xác nhận khôi phục thành viên'}
+        description={
+          confirmUserAction
+            ? confirmUserAction.type === 'delete'
+              ? `Bạn có chắc chắn muốn xóa thành viên "${confirmUserAction.fullName}"?`
+              : `Bạn có chắc chắn muốn khôi phục thành viên "${confirmUserAction.fullName}"?`
+            : ''
+        }
+        confirmText={confirmUserAction?.type === 'delete' ? 'Xóa' : 'Khôi phục'}
+        variant={confirmUserAction?.type === 'delete' ? 'destructive' : 'default'}
+        onConfirm={() => {
+          if (confirmUserAction) {
+            if (confirmUserAction.type === 'delete') {
+              deleteMutation.mutate(confirmUserAction.id)
+            } else {
+              restoreMutation.mutate(confirmUserAction.id)
+            }
+            setConfirmUserAction(null)
+          }
+        }}
+      />
     </div>
   )
 }

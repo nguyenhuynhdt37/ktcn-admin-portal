@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   DndContext,
   closestCorners,
@@ -21,6 +21,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Plus, Loader2, ChevronsUpDown, ChevronsDownUp, AlertTriangle } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { menusService } from '../services/menusService'
 import { SortableMenuItem } from './SortableMenuItem'
 import type { MenuItemNode, FlatMenuItem } from '../types'
@@ -129,6 +130,13 @@ export function MenuDragDropEditor({
   
   // State lưu ID của item vừa được thả để kích hoạt hiệu ứng sáng active (flash)
   const [justDroppedId, setJustDroppedId] = useState<string | null>(null)
+  const dropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (dropTimerRef.current) clearTimeout(dropTimerRef.current)
+    }
+  }, [])
 
   // State lưu trữ danh sách ID các node bị thu gọn
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
@@ -160,6 +168,7 @@ export function MenuDragDropEditor({
   }
 
   // State quản lý Placeholder động khi đang kéo
+  const [menuItemToDelete, setMenuItemToDelete] = useState<{ id: string; title: string } | null>(null)
   const [placeholderInfo, setPlaceholderInfo] = useState<{
     index: number
     depth: number
@@ -410,81 +419,77 @@ export function MenuDragDropEditor({
       return
     }
 
-    const activeId = active.id as string
-
-    // 2. Cập nhật danh sách flatItems chính thức
-    setFlatItems((prev) => {
-      const oldIndex = prev.findIndex((item) => item.id === activeId)
-      if (oldIndex === -1) {
-        setActiveId(null)
-        setPlaceholderInfo(null)
-        return prev
-      }
-
-      const descendants: FlatMenuItem[] = []
-      const draggedItem = prev[oldIndex]
-
-      let nextIdx = oldIndex + 1
-      while (nextIdx < prev.length && prev[nextIdx].depth > draggedItem.depth) {
-        descendants.push(prev[nextIdx])
-        nextIdx++
-      }
-
-      const itemsWithoutCluster = prev.filter(
-        (item) => item.id !== activeId && !descendants.some((d) => d.id === item.id)
-      )
-
-      // Cố định vị trí chèn cũ nếu thả tại chỗ cũ
-      let insertIndex = cachedPlaceholder.index
-      const isBelow = prev.findIndex((item) => item.id === over.id) > oldIndex
-      
-      // Sửa lỗi tự nhảy vị trí: Nếu thả chuột tại chỗ mà không đổi vị trí dọc lẫn độ sâu ngang, return luôn
-      const horizontalOffset = Math.round(event.delta.x / 28)
-      const projectedDepth = Math.max(1, Math.min(3, draggedItem.depth + horizontalOffset))
-      
-      if (over.id === activeId && projectedDepth === draggedItem.depth) {
-        setActiveId(null)
-        setPlaceholderInfo(null)
-        return prev
-      }
-
-      const depthDiff = cachedPlaceholder.depth - draggedItem.depth
-      const updatedDraggedItem = {
-        ...draggedItem,
-        depth: cachedPlaceholder.depth,
-      }
-
-      const updatedDescendants = descendants.map((d) => ({
-        ...d,
-        depth: Math.max(1, Math.min(3, d.depth + depthDiff)),
-      }))
-
-      const result = [...itemsWithoutCluster]
-      result.splice(insertIndex, 0, updatedDraggedItem, ...updatedDescendants)
-
-      const finalized = recalculateParentsAndDepths(result)
-
-      // Kích hoạt hiệu ứng sáng active (flash) khi thả thành công
-      setJustDroppedId(activeId)
-      setTimeout(() => {
-        setJustDroppedId(null)
-      }, 1500)
-
-      // 3. AUTO-SAVE: Tự động lưu ngay lập tức
-      const payload = finalized.map((item, index) => ({
-        id: item.id,
-        parent_id: item.parent_id,
-        sort_order: index * 10,
-      }))
-      
-      reorderMutation.mutate(payload as any)
-
-      // Set null đồng thời trong callback setState để batch render hoàn tất cùng lúc
+    const draggedId = active.id as string
+    const prev = flatItems
+    const oldIndex = prev.findIndex((item) => item.id === draggedId)
+    if (oldIndex === -1) {
       setActiveId(null)
       setPlaceholderInfo(null)
+      return
+    }
 
-      return finalized
-    })
+    const descendants: FlatMenuItem[] = []
+    const draggedItem = prev[oldIndex]
+
+    let nextIdx = oldIndex + 1
+    while (nextIdx < prev.length && prev[nextIdx].depth > draggedItem.depth) {
+      descendants.push(prev[nextIdx])
+      nextIdx++
+    }
+
+    const itemsWithoutCluster = prev.filter(
+      (item) => item.id !== draggedId && !descendants.some((d) => d.id === item.id)
+    )
+
+    // Cố định vị trí chèn cũ nếu thả tại chỗ cũ
+    const insertIndex = cachedPlaceholder.index
+
+    // Sửa lỗi tự nhảy vị trí: Nếu thả chuột tại chỗ mà không đổi vị trí dọc lẫn độ sâu ngang, return luôn
+    const horizontalOffset = Math.round(event.delta.x / 28)
+    const projectedDepth = Math.max(1, Math.min(3, draggedItem.depth + horizontalOffset))
+
+    if (over.id === draggedId && projectedDepth === draggedItem.depth) {
+      setActiveId(null)
+      setPlaceholderInfo(null)
+      return
+    }
+
+    const depthDiff = cachedPlaceholder.depth - draggedItem.depth
+    const updatedDraggedItem = {
+      ...draggedItem,
+      depth: cachedPlaceholder.depth,
+    }
+
+    const updatedDescendants = descendants.map((d) => ({
+      ...d,
+      depth: Math.max(1, Math.min(3, d.depth + depthDiff)),
+    }))
+
+    const result = [...itemsWithoutCluster]
+    result.splice(insertIndex, 0, updatedDraggedItem, ...updatedDescendants)
+
+    const finalized = recalculateParentsAndDepths(result)
+
+    // 2. Cập nhật danh sách flatItems chính thức + reset trạng thái kéo thả cùng lúc
+    setFlatItems(finalized)
+    setActiveId(null)
+    setPlaceholderInfo(null)
+
+    // Kích hoạt hiệu ứng sáng active (flash) khi thả thành công
+    setJustDroppedId(draggedId)
+    if (dropTimerRef.current) clearTimeout(dropTimerRef.current)
+    dropTimerRef.current = setTimeout(() => {
+      setJustDroppedId(null)
+    }, 1500)
+
+    // 3. AUTO-SAVE: Tự động lưu ngay lập tức
+    const payload = finalized.map((item, index) => ({
+      id: item.id,
+      parent_id: item.parent_id,
+      sort_order: index * 10,
+    }))
+
+    reorderMutation.mutate(payload as any)
   }
 
   let displayItems = flatItems.map((item) => ({ ...item }))
@@ -765,11 +770,7 @@ export function MenuDragDropEditor({
                       isGhost={item.isGhost}
                       isValid={item.isValid}
                       onEdit={() => onSelectItem(item.id)}
-                      onDelete={() => {
-                        if (confirm(`Bạn có chắc chắn muốn xóa mục menu "${item.title}" cùng toàn bộ mục con?`)) {
-                          deleteMutation.mutate(item.id)
-                        }
-                      }}
+                      onDelete={() => setMenuItemToDelete({ id: item.id, title: item.title })}
                       onAddChild={() => onCreateItem?.(item.id)}
                       isTranslated={item.is_translated}
                       isVirtual={(item as any).isVirtual}
@@ -805,6 +806,25 @@ export function MenuDragDropEditor({
           </DndContext>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!menuItemToDelete}
+        onOpenChange={(open) => !open && setMenuItemToDelete(null)}
+        title="Xác nhận xóa mục menu"
+        description={
+          menuItemToDelete
+            ? `Bạn có chắc chắn muốn xóa mục menu "${menuItemToDelete.title}" cùng toàn bộ mục con?`
+            : ''
+        }
+        confirmText="Xóa"
+        variant="destructive"
+        onConfirm={() => {
+          if (menuItemToDelete) {
+            deleteMutation.mutate(menuItemToDelete.id)
+            setMenuItemToDelete(null)
+          }
+        }}
+      />
     </div>
   )
 }

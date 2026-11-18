@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext,
@@ -16,25 +16,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import {
-  Star,
-  Globe,
   AlertTriangle,
   Loader2,
-  RefreshCw,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { Card, CardContent } from '@/shared/components/ui/card'
+import { Card } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
-import { Switch } from '@/shared/components/ui/switch'
-import { Badge } from '@/shared/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/components/ui/select'
 import {
   Table,
   TableHeader,
@@ -58,22 +46,15 @@ import { languageService } from '../services/languageService'
 import { SortableTableRow } from '../components/SortableTableRow'
 import type { Language } from '../types'
 
-const FLAG_MAP: Record<string, string> = {
-  vi: '🇻🇳',
-  en: '🇬🇧',
-}
-
 export function LanguagesPage() {
   const queryClient = useQueryClient()
 
   // Danh sách hiển thị local phục vụ kéo thả mượt mà
-  const [localLanguages, setLocalLanguages] = useState<Language[]>([])
+  const [draggedLanguages, setDraggedLanguages] = useState<Language[] | null>(null)
 
   // State cho AlertDialog xác nhận thay đổi mặc định
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingLanguage, setPendingLanguage] = useState<Language | null>(null)
-
-
 
   // Cấu hình các cảm biến kéo thả dnd-kit
   const sensors = useSensors(
@@ -94,16 +75,7 @@ export function LanguagesPage() {
     queryFn: () => languageService.getLanguages(false), // Chỉ hiển thị các ngôn ngữ không bị xóa mềm
   })
 
-
-
-  // Đồng bộ danh sách local khi dữ liệu từ query thay đổi
-  useEffect(() => {
-    if (languages) {
-      setLocalLanguages(languages)
-    }
-  }, [languages])
-
-
+  const localLanguages = draggedLanguages ?? languages
 
   // Mutation: Thay đổi trạng thái hoạt động (Enable/Disable)
   const toggleStatusMutation = useMutation({
@@ -118,10 +90,12 @@ export function LanguagesPage() {
       toast.success(
         `Đã ${res.is_active ? 'kích hoạt' : 'vô hiệu hóa'} ngôn ngữ "${res.name}" thành công!`
       )
+      setDraggedLanguages(null)
       queryClient.invalidateQueries({ queryKey: ['languages'] })
     },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.error?.message || 'Không thể cập nhật trạng thái ngôn ngữ.'
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: { message?: string } } } }
+      const msg = err?.response?.data?.error?.message || 'Không thể cập nhật trạng thái ngôn ngữ.'
       toast.error(msg)
     },
   })
@@ -131,10 +105,12 @@ export function LanguagesPage() {
     mutationFn: (id: string) => languageService.setDefaultLanguage(id),
     onSuccess: (res) => {
       toast.success(`Đã đặt ngôn ngữ "${res.name}" làm mặc định hệ thống thành công!`)
+      setDraggedLanguages(null)
       queryClient.invalidateQueries({ queryKey: ['languages'] })
     },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.error?.message || 'Không thể đặt ngôn ngữ mặc định.'
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: { message?: string } } } }
+      const msg = err?.response?.data?.error?.message || 'Không thể đặt ngôn ngữ mặc định.'
       toast.error(msg)
     },
   })
@@ -145,39 +121,35 @@ export function LanguagesPage() {
       languageService.reorderLanguages(payload),
     onSuccess: () => {
       toast.success('Đã cập nhật thứ tự sắp xếp ngôn ngữ!')
+      setDraggedLanguages(null)
       queryClient.invalidateQueries({ queryKey: ['languages'] })
     },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.error?.message || 'Không thể lưu thứ tự sắp xếp.'
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: { message?: string } } } }
+      const msg = err?.response?.data?.error?.message || 'Không thể lưu thứ tự sắp xếp.'
       toast.error(msg)
+      setDraggedLanguages(null)
       refetch() // Quay lại danh sách từ server nếu có lỗi
     },
   })
-
-
 
   // Xử lý sự kiện kéo thả kết thúc
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
 
     if (over && active.id !== over.id) {
-      setLocalLanguages((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id)
-        const newIndex = items.findIndex((item) => item.id === over.id)
+      const oldIndex = localLanguages.findIndex((item) => item.id === active.id)
+      const newIndex = localLanguages.findIndex((item) => item.id === over.id)
+      if (oldIndex === -1 || newIndex === -1) return
 
-        const newItems = arrayMove(items, oldIndex, newIndex)
+      const newItems = arrayMove(localLanguages, oldIndex, newIndex)
+      const payload = newItems.map((item, index) => ({
+        id: item.id,
+        sort_order: (index + 1) * 100, // Đánh số lại thứ tự cách nhau 100
+      }))
 
-        // Tính toán sort_order mới dựa trên vị trí sau khi kéo thả
-        const payload = newItems.map((item, index) => ({
-          id: item.id,
-          sort_order: (index + 1) * 100, // Đánh số lại thứ tự cách nhau 100
-        }))
-
-        // Gọi API cập nhật
-        reorderMutation.mutate(payload)
-
-        return newItems
-      })
+      setDraggedLanguages(newItems)
+      reorderMutation.mutate(payload)
     }
   }
 

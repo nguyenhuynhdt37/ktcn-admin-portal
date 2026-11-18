@@ -27,6 +27,7 @@ import { useTagForm, slugify } from '../hooks/useTagForm'
 
 interface TagFormProps {
   initialData: Tag | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSubmit: (values: any) => void
   onCancel: () => void
   isSubmitting: boolean

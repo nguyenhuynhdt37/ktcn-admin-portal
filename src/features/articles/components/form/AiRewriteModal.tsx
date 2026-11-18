@@ -11,7 +11,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Label } from '@/shared/components/ui/label'
 import { Input } from '@/shared/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
-import { Sparkles, Loader2, ArrowRight, Check } from 'lucide-react'
+import { Sparkles, Loader2, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { articleService } from '../../services/articleService'
 import { sanitizeRichHtml } from '@/shared/utils/security'
@@ -60,9 +60,10 @@ export function AiRewriteModal({
 
       setRewrittenContent(res.content)
       toast.success('Đã tối ưu hóa nội dung thành công!', { id: toastId })
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      toast.error(err?.response?.data?.error?.message || 'Không thể tối ưu hóa nội dung lúc này.', { id: toastId })
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      toast.error(errorObj?.response?.data?.error?.message || 'Không thể tối ưu hóa nội dung lúc này.', { id: toastId })
     } finally {
       setIsLoading(false)
     }
@@ -93,11 +94,11 @@ export function AiRewriteModal({
         {!rewrittenContent ? (
           <div className="space-y-4 py-3 text-left">
             <div className="space-y-1.5">
-              <Label htmlFor="rewriteFocusKeyword" className="text-xs font-semibold text-foreground/80">
+              <Label htmlFor={`rewriteFocusKeyword-${lang}`} className="text-xs font-semibold text-foreground/80">
                 Từ khóa chính cần chèn (Focus Keyword)
               </Label>
               <Input
-                id="rewriteFocusKeyword"
+                id={`rewriteFocusKeyword-${lang}`}
                 placeholder="Nhập từ khóa chính để AI chèn tự nhiên..."
                 value={focusKeyword}
                 onChange={(e) => setFocusKeyword(e.target.value)}
@@ -107,11 +108,11 @@ export function AiRewriteModal({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="rewriteTone" className="text-xs font-semibold text-foreground/80">
+              <Label htmlFor={`rewriteTone-${lang}`} className="text-xs font-semibold text-foreground/80">
                 Tone giọng / Văn phong
               </Label>
               <Select value={tone} onValueChange={setTone} disabled={isLoading}>
-                <SelectTrigger id="rewriteTone" className="h-9 text-xs">
+                <SelectTrigger id={`rewriteTone-${lang}`} className="h-9 text-xs">
                   <SelectValue placeholder="Chọn tone giọng" />
                 </SelectTrigger>
                 <SelectContent className="text-xs">

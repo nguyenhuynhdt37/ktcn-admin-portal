@@ -9,6 +9,7 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/shared/components/ui/card'
 import { profileService } from '../services/profileService'
 import { getMediaUrl } from '@/features/articles/utils/media'
+import { validateImageFile } from '@/shared/utils/security'
 import type { MyProfileResponse } from '../types/profile.types'
 
 interface ProfileInfoTabProps {
@@ -19,66 +20,90 @@ export function ProfileInfoTab({ profile }: ProfileInfoTabProps) {
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [fullName, setFullName] = useState(profile.full_name)
-  const [phone, setPhone] = useState(profile.phone ?? '')
-  const [bio, setBio] = useState(profile.bio ?? '')
-  const [title, setTitle] = useState(profile.title ?? '')
+  const [fullName, setFullName] = useState<string | null>(null)
+  const [phone, setPhone] = useState<string | null>(null)
+  const [bio, setBio] = useState<string | null>(null)
+  const [title, setTitle] = useState<string | null>(null)
   const [avatarId, setAvatarId] = useState<string | null>(null)
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(
-    profile.avatar_url ? getMediaUrl(profile.avatar_url) : null
-  )
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const avatarBlobRef = useRef<string | null>(null)
+
+  const currentFullName = fullName ?? profile.full_name
+  const currentPhone = phone ?? (profile.phone ?? '')
+  const currentBio = bio ?? (profile.bio ?? '')
+  const currentTitle = title ?? (profile.title ?? '')
+  const currentAvatarPreview = avatarPreview ?? (profile.avatar_url ? getMediaUrl(profile.avatar_url) : null)
 
   useEffect(() => {
-    setFullName(profile.full_name)
-    setPhone(profile.phone ?? '')
-    setBio(profile.bio ?? '')
-    setTitle(profile.title ?? '')
-    setAvatarPreview(profile.avatar_url ? getMediaUrl(profile.avatar_url) : null)
-    setAvatarId(null)
-  }, [profile])
+    return () => {
+      if (avatarBlobRef.current) URL.revokeObjectURL(avatarBlobRef.current)
+    }
+  }, [])
 
   const updateMutation = useMutation({
     mutationFn: () => {
       const payload: Record<string, unknown> = {}
-      if (fullName !== profile.full_name) payload.full_name = fullName
-      if (phone !== (profile.phone ?? '')) payload.phone = phone || null
-      if (bio !== (profile.bio ?? '')) payload.bio = bio || null
-      if (title !== (profile.title ?? '')) payload.title = title || null
+      if (currentFullName !== profile.full_name) payload.full_name = currentFullName
+      if (currentPhone !== (profile.phone ?? '')) payload.phone = currentPhone || null
+      if (currentBio !== (profile.bio ?? '')) payload.bio = currentBio || null
+      if (currentTitle !== (profile.title ?? '')) payload.title = currentTitle || null
       if (avatarId) payload.avatar_id = avatarId
       return profileService.updateProfile(payload)
     },
     onSuccess: () => {
       toast.success('Cập nhật hồ sơ thành công')
+      setFullName(null)
+      setPhone(null)
+      setBio(null)
+      setTitle(null)
+      setAvatarId(null)
+      if (avatarBlobRef.current) {
+        URL.revokeObjectURL(avatarBlobRef.current)
+        avatarBlobRef.current = null
+      }
+      setAvatarPreview(null)
       queryClient.invalidateQueries({ queryKey: ['my-profile'] })
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.error?.message || 'Cập nhật hồ sơ thất bại')
+    onError: (err: unknown) => {
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      toast.error(errorObj?.response?.data?.error?.message || 'Cập nhật hồ sơ thất bại')
     },
   })
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    const fileError = validateImageFile(file, { maxSizeMb: 2 })
+    if (fileError) {
+      toast.error(fileError)
+      e.target.value = ''
+      return
+    }
+
     setIsUploading(true)
     try {
       const res = await profileService.uploadAvatar(file)
       setAvatarId(res.id)
-      // Preview ngay bằng object URL
-      setAvatarPreview(URL.createObjectURL(file))
+      if (avatarBlobRef.current) URL.revokeObjectURL(avatarBlobRef.current)
+      const blobUrl = URL.createObjectURL(file)
+      avatarBlobRef.current = blobUrl
+      setAvatarPreview(blobUrl)
       toast.success('Tải ảnh lên thành công')
     } catch {
       toast.error('Không thể tải ảnh lên')
     } finally {
       setIsUploading(false)
+      e.target.value = ''
     }
   }
 
   const hasChanges =
-    fullName !== profile.full_name ||
-    phone !== (profile.phone ?? '') ||
-    bio !== (profile.bio ?? '') ||
-    title !== (profile.title ?? '') ||
+    currentFullName !== profile.full_name ||
+    currentPhone !== (profile.phone ?? '') ||
+    currentBio !== (profile.bio ?? '') ||
+    currentTitle !== (profile.title ?? '') ||
     avatarId !== null
 
   return (
@@ -87,8 +112,8 @@ export function ProfileInfoTab({ profile }: ProfileInfoTabProps) {
       <Card className="group overflow-hidden h-fit">
         <CardContent className="flex flex-col items-center justify-center p-6 space-y-4">
           <div className="relative size-28 rounded-full overflow-hidden border-2 bg-muted flex items-center justify-center shadow-sm group-hover:border-primary/60 transition-colors">
-            {avatarPreview ? (
-              <img src={avatarPreview} alt="Avatar" className="size-full object-cover transition-transform group-hover:scale-105 duration-200" />
+            {currentAvatarPreview ? (
+              <img src={currentAvatarPreview} alt="Avatar" className="size-full object-cover transition-transform group-hover:scale-105 duration-200" />
             ) : (
               <User className="size-14 text-muted-foreground/45" />
             )}
@@ -119,7 +144,13 @@ export function ProfileInfoTab({ profile }: ProfileInfoTabProps) {
             <p className="text-sm font-semibold">{profile.full_name}</p>
             <p className="text-xs text-muted-foreground">{profile.email}</p>
             <p className="text-[11px] text-muted-foreground mt-1">
-              {profile.roles.includes('super_admin') ? 'Super Admin' : 'Admin'}
+              {profile.roles.includes('super_admin')
+                ? 'Super Admin'
+                : profile.roles.includes('admin')
+                  ? 'Admin'
+                  : profile.roles.includes('editor')
+                    ? 'Biên tập viên'
+                    : profile.roles.join(', ') || 'Thành viên'}
             </p>
           </div>
         </CardContent>
@@ -148,7 +179,7 @@ export function ProfileInfoTab({ profile }: ProfileInfoTabProps) {
               <Label htmlFor="profile-fullname">Họ và tên <span className="text-destructive">*</span></Label>
               <Input
                 id="profile-fullname"
-                value={fullName}
+                value={currentFullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Nhập họ và tên"
                 maxLength={100}
@@ -158,7 +189,7 @@ export function ProfileInfoTab({ profile }: ProfileInfoTabProps) {
               <Label htmlFor="profile-phone">Số điện thoại</Label>
               <Input
                 id="profile-phone"
-                value={phone}
+                value={currentPhone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="VD: 0901234567"
                 maxLength={20}
@@ -170,7 +201,7 @@ export function ProfileInfoTab({ profile }: ProfileInfoTabProps) {
             <Label htmlFor="profile-title">Chức danh</Label>
             <Input
               id="profile-title"
-              value={title}
+              value={currentTitle}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="VD: Trưởng phòng CNTT"
               maxLength={100}
@@ -181,7 +212,7 @@ export function ProfileInfoTab({ profile }: ProfileInfoTabProps) {
             <Label htmlFor="profile-bio">Mô tả bản thân</Label>
             <Textarea
               id="profile-bio"
-              value={bio}
+              value={currentBio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Viết vài dòng giới thiệu về bạn..."
               rows={4}
@@ -191,7 +222,7 @@ export function ProfileInfoTab({ profile }: ProfileInfoTabProps) {
           <div className="flex justify-end pt-2">
             <Button
               onClick={() => updateMutation.mutate()}
-              disabled={!hasChanges || updateMutation.isPending || !fullName.trim()}
+              disabled={!hasChanges || updateMutation.isPending || !currentFullName.trim()}
               className="gap-2 cursor-pointer"
             >
               {updateMutation.isPending ? (

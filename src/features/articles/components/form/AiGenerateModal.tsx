@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import { Label } from '@/shared/components/ui/label'
 import { Input } from '@/shared/components/ui/input'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
-import { Sparkles, Loader2, Check } from 'lucide-react'
+import { Sparkles, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { articleService } from '../../services/articleService'
 import type { ArticleGenerateByIdeaResponse } from '../../types/articles.types'
@@ -45,6 +45,13 @@ export function AiGenerateModal({
   const [isLoading, setIsLoading] = useState(false)
   const [quoteIndex, setQuoteIndex] = useState(0)
   const [progress, setProgress] = useState(0)
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current)
+    }
+  }, [])
 
   // Hiệu ứng chạy quotes giả lập khi loading lâu
   useEffect(() => {
@@ -52,9 +59,6 @@ export function AiGenerateModal({
     let progressInterval: NodeJS.Timeout
 
     if (isLoading) {
-      setProgress(0)
-      setQuoteIndex(0)
-      
       quoteInterval = setInterval(() => {
         setQuoteIndex((prev) => (prev + 1) % LOADING_QUOTES.length)
       }, 4000)
@@ -79,6 +83,8 @@ export function AiGenerateModal({
       return
     }
 
+    setProgress(0)
+    setQuoteIndex(0)
     setIsLoading(true)
     const toastId = toast.loading('AI đang phân tích ý tưởng và soạn thảo toàn bộ bài viết...')
 
@@ -91,7 +97,8 @@ export function AiGenerateModal({
       })
 
       setProgress(100)
-      setTimeout(() => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current)
+      successTimerRef.current = setTimeout(() => {
         onGenerateSuccess(res, targetLang)
         toast.success('Đã sinh bài viết và áp dụng vào form thành công!', { id: toastId })
         // Clear form
@@ -99,9 +106,10 @@ export function AiGenerateModal({
         setFocusKeyword('')
         onClose()
       }, 500)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      toast.error(err?.response?.data?.error?.message || 'Không thể sinh bài viết lúc này. Vui lòng thử lại.', { id: toastId })
+      const errorObj = err as { response?: { data?: { error?: { message?: string } } } }
+      toast.error(errorObj?.response?.data?.error?.message || 'Không thể sinh bài viết lúc này. Vui lòng thử lại.', { id: toastId })
     } finally {
       setIsLoading(false)
     }

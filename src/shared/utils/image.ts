@@ -7,7 +7,10 @@ export const resizeAndCropImage = (file: File, targetWidth: number, targetHeight
       canvas.width = targetWidth;
       canvas.height = targetHeight;
       const ctx = canvas.getContext('2d');
-      if (!ctx) return reject(new Error('Canvas context not available'));
+      if (!ctx) {
+        URL.revokeObjectURL(img.src);
+        return reject(new Error('Canvas context not available'));
+      }
 
       const imgRatio = img.width / img.height;
       const targetRatio = targetWidth / targetHeight;

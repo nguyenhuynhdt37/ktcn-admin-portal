@@ -1,50 +1,114 @@
-import { createBrowserRouter, Navigate } from 'react-router'
+/* eslint-disable react-refresh/only-export-components */
+import { lazy, Suspense } from 'react'
+import { createBrowserRouter, Navigate, Link } from 'react-router'
 import { AdminLayout } from '@/app/layouts/AdminLayout'
 import { AuthLayout } from '@/app/layouts/AuthLayout'
 import { ProtectedRoute } from './ProtectedRoute'
 import { PublicRoute } from './PublicRoute'
-import { LoginPage } from '@/features/auth/pages/LoginPage'
-import { DashboardPage } from '@/features/dashboard/pages/DashboardPage'
-import { UsersPage } from '@/features/users/pages/UsersPage'
-import { UserCreatePage } from '@/features/users/pages/UserCreatePage'
-import { UserEditPage } from '@/features/users/pages/UserEditPage'
-import { UserActivityPage } from '@/features/users/pages/UserActivityPage'
-import { AuditLogsPage } from '@/features/audit-logs/pages/AuditLogsPage'
-import { MenusPage } from '@/features/menus/pages/MenusPage'
-import { LanguagesPage } from '@/features/languages/pages/LanguagesPage'
-import { AIHubPage } from '@/features/ai-hub/pages/AIHubPage'
-import { EmbeddingSettingsPage } from '@/features/ai-hub/pages/EmbeddingSettingsPage'
-import { useAuthStore } from '@/stores/authStore'
-
-
-
-import { CategoriesPage } from '@/features/categories/pages/CategoriesPage'
-import { PositionsPage } from '@/features/positions/pages/PositionsPage'
-import { DepartmentsPage } from '@/features/departments/pages/DepartmentsPage'
-import DepartmentCreatePage from '@/features/departments/pages/DepartmentCreatePage'
-import DepartmentEditPage from '@/features/departments/pages/DepartmentEditPage'
-import { GalleriesPage } from '@/features/galleries/pages/GalleriesPage'
-import GalleryCreatePage from '@/features/galleries/pages/GalleryCreatePage'
-import GalleryEditPage from '@/features/galleries/pages/GalleryEditPage'
-import { BannersPage } from '@/features/banners/pages/BannersPage'
-import { TeachersPage } from '@/features/teachers/pages/TeachersPage'
-import TeacherCreatePage from '@/features/teachers/pages/TeacherCreatePage'
-import TeacherEditPage from '@/features/teachers/pages/TeacherEditPage'
-import TeacherDetailPage from '@/features/teachers/pages/TeacherDetailPage'
-import { ProgramsPage } from '@/features/programs/pages/ProgramsPage'
-import { ProgramEditPage } from '@/features/programs/pages/ProgramEditPage'
-
-import { TagsPage } from '@/features/tags/pages/TagsPage'
-import { ArticlesPage } from '@/features/articles/pages/ArticlesPage'
-import ArticleFormPage from '@/features/articles/pages/ArticleFormPage'
-import ArticleEditPage from '@/features/articles/pages/ArticleEditPage'
-import ArticleDetailPage from '@/features/articles/pages/ArticleDetailPage'
-import { ArticleDraftsPage } from '@/features/articles/pages/ArticleDraftsPage'
-import { ProfilePage } from '@/features/profile/pages/ProfilePage'
-import { ConsultationsPage } from '@/features/consultations/pages/ConsultationsPage'
-import { SettingsPage } from '@/features/settings/pages/SettingsPage'
+import { isAdminUser, useAuthStore } from '@/stores/authStore'
 import { Button } from '@/shared/components/ui/button'
-import { Link } from 'react-router'
+
+const LoginPage = lazy(() =>
+  import('@/features/auth/pages/LoginPage').then((m) => ({ default: m.LoginPage }))
+)
+const DashboardPage = lazy(() =>
+  import('@/features/dashboard/pages/DashboardPage').then((m) => ({ default: m.DashboardPage }))
+)
+const UsersPage = lazy(() => import('@/features/users/pages/UsersPage'))
+const UserCreatePage = lazy(() =>
+  import('@/features/users/pages/UserCreatePage').then((m) => ({ default: m.UserCreatePage }))
+)
+const UserEditPage = lazy(() =>
+  import('@/features/users/pages/UserEditPage').then((m) => ({ default: m.UserEditPage }))
+)
+const UserActivityPage = lazy(() => import('@/features/users/pages/UserActivityPage'))
+const AuditLogsPage = lazy(() =>
+  import('@/features/audit-logs/pages/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage }))
+)
+const MenusPage = lazy(() =>
+  import('@/features/menus/pages/MenusPage').then((m) => ({ default: m.MenusPage }))
+)
+const LanguagesPage = lazy(() =>
+  import('@/features/languages/pages/LanguagesPage').then((m) => ({ default: m.LanguagesPage }))
+)
+const AIHubPage = lazy(() =>
+  import('@/features/ai-hub/pages/AIHubPage').then((m) => ({ default: m.AIHubPage }))
+)
+const EmbeddingSettingsPage = lazy(() =>
+  import('@/features/ai-hub/pages/EmbeddingSettingsPage').then((m) => ({
+    default: m.EmbeddingSettingsPage,
+  }))
+)
+const CategoriesPage = lazy(() =>
+  import('@/features/categories/pages/CategoriesPage').then((m) => ({ default: m.CategoriesPage }))
+)
+const PositionsPage = lazy(() =>
+  import('@/features/positions/pages/PositionsPage').then((m) => ({ default: m.PositionsPage }))
+)
+const DepartmentsPage = lazy(() =>
+  import('@/features/departments/pages/DepartmentsPage').then((m) => ({
+    default: m.DepartmentsPage,
+  }))
+)
+const DepartmentCreatePage = lazy(() => import('@/features/departments/pages/DepartmentCreatePage'))
+const DepartmentEditPage = lazy(() => import('@/features/departments/pages/DepartmentEditPage'))
+const GalleriesPage = lazy(() =>
+  import('@/features/galleries/pages/GalleriesPage').then((m) => ({ default: m.GalleriesPage }))
+)
+const GalleryCreatePage = lazy(() => import('@/features/galleries/pages/GalleryCreatePage'))
+const GalleryEditPage = lazy(() => import('@/features/galleries/pages/GalleryEditPage'))
+const BannersPage = lazy(() => import('@/features/banners/pages/BannersPage'))
+const TeachersPage = lazy(() =>
+  import('@/features/teachers/pages/TeachersPage').then((m) => ({ default: m.TeachersPage }))
+)
+const TeacherCreatePage = lazy(() => import('@/features/teachers/pages/TeacherCreatePage'))
+const TeacherEditPage = lazy(() => import('@/features/teachers/pages/TeacherEditPage'))
+const TeacherDetailPage = lazy(() => import('@/features/teachers/pages/TeacherDetailPage'))
+const ProgramsPage = lazy(() =>
+  import('@/features/programs/pages/ProgramsPage').then((m) => ({ default: m.ProgramsPage }))
+)
+const ProgramEditPage = lazy(() =>
+  import('@/features/programs/pages/ProgramEditPage').then((m) => ({ default: m.ProgramEditPage }))
+)
+const TagsPage = lazy(() =>
+  import('@/features/tags/pages/TagsPage').then((m) => ({ default: m.TagsPage }))
+)
+const ArticlesPage = lazy(() =>
+  import('@/features/articles/pages/ArticlesPage').then((m) => ({ default: m.ArticlesPage }))
+)
+const ArticleFormPage = lazy(() => import('@/features/articles/pages/ArticleFormPage'))
+const ArticleEditPage = lazy(() => import('@/features/articles/pages/ArticleEditPage'))
+const ArticleDetailPage = lazy(() => import('@/features/articles/pages/ArticleDetailPage'))
+const ArticleDraftsPage = lazy(() =>
+  import('@/features/articles/pages/ArticleDraftsPage').then((m) => ({
+    default: m.ArticleDraftsPage,
+  }))
+)
+const ProfilePage = lazy(() =>
+  import('@/features/profile/pages/ProfilePage').then((m) => ({ default: m.ProfilePage }))
+)
+const ConsultationsPage = lazy(() =>
+  import('@/features/consultations/pages/ConsultationsPage').then((m) => ({
+    default: m.ConsultationsPage,
+  }))
+)
+const SettingsPage = lazy(() =>
+  import('@/features/settings/pages/SettingsPage').then((m) => ({ default: m.SettingsPage }))
+)
+
+function withSuspense(node: React.ReactNode) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-[50vh] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      }
+    >
+      {node}
+    </Suspense>
+  )
+}
 
 function NotFoundPage() {
   return (
@@ -63,14 +127,12 @@ function NotFoundPage() {
 
 function IndexRedirect() {
   const { user } = useAuthStore()
-  const isAdmin = !!user?.is_admin || user?.roles?.includes('super_admin') || user?.roles?.includes('admin')
-  return <Navigate to={isAdmin ? "/dashboard" : "/articles"} replace />
+  return <Navigate to={isAdminUser(user) ? "/dashboard" : "/articles"} replace />
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore()
-  const isAdmin = !!user?.is_admin || user?.roles?.includes('super_admin') || user?.roles?.includes('admin')
-  if (!isAdmin) {
+  if (!isAdminUser(user)) {
     return <Navigate to="/articles" replace />
   }
   return <>{children}</>
@@ -84,7 +146,7 @@ export const router = createBrowserRouter([
         path: 'login',
         element: (
           <PublicRoute>
-            <LoginPage />
+            {withSuspense(<LoginPage />)}
           </PublicRoute>
         ),
       },
@@ -106,150 +168,162 @@ export const router = createBrowserRouter([
         path: 'dashboard',
         element: (
           <AdminRoute>
-            <DashboardPage />
+            {withSuspense(<DashboardPage />)}
           </AdminRoute>
         ),
       },
       {
         path: 'categories',
-        element: <CategoriesPage />,
+        element: withSuspense(<CategoriesPage />),
       },
       {
         path: 'positions',
-        element: <PositionsPage />,
+        element: withSuspense(<PositionsPage />),
       },
       {
         path: 'departments',
-        element: <DepartmentsPage />,
+        element: withSuspense(<DepartmentsPage />),
       },
       {
         path: 'departments/create',
-        element: <DepartmentCreatePage />,
+        element: withSuspense(<DepartmentCreatePage />),
       },
       {
         path: 'departments/:id/edit',
-        element: <DepartmentEditPage />,
+        element: withSuspense(<DepartmentEditPage />),
       },
       {
         path: 'galleries',
-        element: <GalleriesPage />,
+        element: withSuspense(<GalleriesPage />),
       },
       {
         path: 'galleries/create',
-        element: <GalleryCreatePage />,
+        element: withSuspense(<GalleryCreatePage />),
       },
       {
         path: 'galleries/:id/edit',
-        element: <GalleryEditPage />,
+        element: withSuspense(<GalleryEditPage />),
       },
       {
         path: 'tags',
-        element: <TagsPage />,
+        element: withSuspense(<TagsPage />),
       },
       {
         path: 'banners',
-        element: <BannersPage />,
+        element: withSuspense(<BannersPage />),
       },
       {
         path: 'teachers',
-        element: <TeachersPage />,
+        element: withSuspense(<TeachersPage />),
       },
       {
         path: 'teachers/create',
-        element: <TeacherCreatePage />,
+        element: withSuspense(<TeacherCreatePage />),
       },
       {
         path: 'teachers/:id/edit',
-        element: <TeacherEditPage />,
+        element: withSuspense(<TeacherEditPage />),
       },
       {
         path: 'teachers/:slug',
-        element: <TeacherDetailPage />,
+        element: withSuspense(<TeacherDetailPage />),
       },
       {
         path: 'programs',
-        element: <ProgramsPage />,
+        element: withSuspense(<ProgramsPage />),
       },
       {
         path: 'programs/:id/edit',
-        element: <ProgramEditPage />,
+        element: withSuspense(<ProgramEditPage />),
       },
       {
         path: 'articles',
-        element: <ArticlesPage />,
+        element: withSuspense(<ArticlesPage />),
       },
       {
         path: 'articles/create',
-        element: <ArticleFormPage />,
+        element: withSuspense(<ArticleFormPage />),
       },
       {
         path: 'articles/:id/edit',
-        element: <ArticleEditPage />,
+        element: withSuspense(<ArticleEditPage />),
       },
       {
         path: 'articles/:id/preview',
-        element: <ArticleDetailPage />,
+        element: withSuspense(<ArticleDetailPage />),
       },
       {
         path: 'articles/drafts',
-        element: <ArticleDraftsPage />,
+        element: withSuspense(<ArticleDraftsPage />),
       },
       {
         path: 'consultations',
-        element: <ConsultationsPage />,
+        element: withSuspense(<ConsultationsPage />),
       },
       {
         path: 'users',
-        element: <UsersPage />,
+        element: (
+          <AdminRoute>
+            {withSuspense(<UsersPage />)}
+          </AdminRoute>
+        ),
       },
       {
         path: 'users/create',
-        element: <UserCreatePage />,
+        element: (
+          <AdminRoute>
+            {withSuspense(<UserCreatePage />)}
+          </AdminRoute>
+        ),
       },
       {
         path: 'users/:id/edit',
-        element: <UserEditPage />,
+        element: (
+          <AdminRoute>
+            {withSuspense(<UserEditPage />)}
+          </AdminRoute>
+        ),
       },
       {
         path: 'users/:id/activity',
-        element: <UserActivityPage />,
+        element: (
+          <AdminRoute>
+            {withSuspense(<UserActivityPage />)}
+          </AdminRoute>
+        ),
       },
       {
         path: 'audit-logs',
-        element: <AuditLogsPage />,
+        element: (
+          <AdminRoute>
+            {withSuspense(<AuditLogsPage />)}
+          </AdminRoute>
+        ),
       },
       {
         path: 'menus',
-        element: <MenusPage />,
+        element: withSuspense(<MenusPage />),
       },
       {
         path: 'languages',
-        element: <LanguagesPage />,
+        element: withSuspense(<LanguagesPage />),
       },
-
       {
         path: 'languages/ai-hub',
-        element: <AIHubPage />,
+        element: withSuspense(<AIHubPage />),
       },
       {
         path: 'languages/embedding',
-        element: <EmbeddingSettingsPage />,
+        element: withSuspense(<EmbeddingSettingsPage />),
       },
-
-
       {
         path: 'profile',
-        element: <ProfilePage />,
+        element: withSuspense(<ProfilePage />),
       },
       {
         path: 'settings',
-        element: <SettingsPage />,
+        element: withSuspense(<SettingsPage />),
       },
-      {
-        path: 'consultations',
-        element: <ConsultationsPage />,
-      },
-
       {
         path: '*',
         element: <NotFoundPage />,

@@ -67,7 +67,7 @@ export function PositionsPage() {
     desc: sortDir === 'desc',
   }], [sortBy, sortDir])
 
-  const setPagination = useCallback((value: any) => {
+  const setPagination = useCallback((value: PaginationState | ((old: PaginationState) => PaginationState)) => {
     const params = new URLSearchParams(searchParams)
     if (typeof value === 'function') {
       const next = value({ pageIndex, pageSize })
@@ -80,7 +80,7 @@ export function PositionsPage() {
     setSearchParams(params)
   }, [pageIndex, pageSize, searchParams, setSearchParams])
 
-  const setSorting = useCallback((value: any) => {
+  const setSorting = useCallback((value: SortingState | ((old: SortingState) => SortingState)) => {
     const params = new URLSearchParams(searchParams)
     const nextSorting = typeof value === 'function' ? value(sorting) : value
     if (nextSorting.length > 0) {
@@ -166,7 +166,7 @@ export function PositionsPage() {
   const toggleStatusMutation = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       positionService.updateStatus(id, { is_active }),
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success(`Đã thay đổi trạng thái hoạt động chức vụ`)
       queryClient.invalidateQueries({ queryKey: ['positions'] })
       queryClient.invalidateQueries({ queryKey: ['positions-stats'] })
@@ -460,6 +460,9 @@ export function PositionsPage() {
       {/* Dialog Form Form (Add/Edit Modal) */}
       <Dialog open={isFormOpen} onOpenChange={(open) => !open && handleCancelForm()}>
         <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border">
+          <DialogTitle className="sr-only">
+            {editingPositionId ? 'Cập nhật chức vụ' : 'Thêm chức vụ mới'}
+          </DialogTitle>
           {editingPositionId && isFetchingDetail ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />

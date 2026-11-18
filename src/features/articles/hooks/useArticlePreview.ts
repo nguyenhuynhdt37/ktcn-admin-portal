@@ -83,7 +83,6 @@ export function useArticlePreview() {
   const seoAnalysis = useMemo<SeoAnalysis | null>(() => {
     if (!displayData) return null
 
-    const maxTitleLen = SEO_CONFIG.MAX_TOTAL_TITLE_LENGTH
     const cleanTitle = displayData.seo_title || ''
     const baseFallback = displayData.title || ''
     const finalTitle = cleanTitle.trim() || baseFallback

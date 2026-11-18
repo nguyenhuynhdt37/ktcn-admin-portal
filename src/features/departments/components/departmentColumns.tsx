@@ -27,6 +27,7 @@ import {
 import { cn } from '@/lib/utils'
 import type { Department } from '../types'
 import { getMediaUrl } from '@/features/articles/utils/media'
+import { toSafeExternalHref } from '@/shared/utils/security'
 
 interface DepartmentColumnsProps {
   onEdit: (id: string) => void
@@ -132,18 +133,23 @@ export const getDepartmentColumns = ({
             </span>
           </div>
 
-          {item.website && (
-            <a
-              href={item.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[9px] text-primary hover:underline flex items-center gap-1 w-fit mt-0.5"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Globe className="h-2.5 w-2.5" />
-              <span>{item.website.replace(/^https?:\/\//, '')}</span>
-            </a>
-          )}
+          {item.website && (() => {
+            const safeWebsite = toSafeExternalHref(item.website)
+            return safeWebsite ? (
+              <a
+                href={safeWebsite}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[9px] text-primary hover:underline flex items-center gap-1 w-fit mt-0.5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Globe className="h-2.5 w-2.5" />
+                <span>{item.website.replace(/^https?:\/\//, '')}</span>
+              </a>
+            ) : (
+              <span className="text-[9px] text-muted-foreground mt-0.5">{item.website}</span>
+            )
+          })()}
         </div>
       )
     },
@@ -226,6 +232,7 @@ export const getDepartmentColumns = ({
           <Switch
             checked={item.is_active}
             onCheckedChange={(checked) => onToggleStatus(item.id, checked)}
+            aria-label={`Bật/tắt bộ môn ${item.name}`}
             className="scale-75 cursor-pointer"
           />
         </div>

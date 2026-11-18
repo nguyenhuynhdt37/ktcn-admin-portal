@@ -2,8 +2,6 @@ import { Link } from 'react-router'
 import dayjs from 'dayjs'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
-  Pin,
-  Star,
   CornerDownRight,
   RotateCcw,
   Edit,
@@ -33,7 +31,7 @@ import { cn } from '@/lib/utils'
 
 interface ArticleColumnsProps {
   deleted: boolean
-  currentUser: any
+  currentUser: { id?: string; roles?: string[] } | null
   onEdit: (id: string) => void
   onDelete: (id: string) => void
   onRestore: (id: string) => void
@@ -270,7 +268,7 @@ export const getArticleColumns = ({
     ),
     cell: ({ row }) => (
       <span className="font-mono text-xs font-medium text-foreground block text-center">
-        {row.original.view_count.toLocaleString()}
+        {(row.original.view_count ?? 0).toLocaleString()}
       </span>
     )
   },

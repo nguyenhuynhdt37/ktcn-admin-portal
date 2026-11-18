@@ -151,6 +151,7 @@ export const getGalleryColumns = ({
           <Switch
             checked={item.is_active}
             onCheckedChange={(checked) => onToggleStatus(item.id, checked)}
+            aria-label={`Bật/tắt album ${item.translations?.vi?.title || item.id}`}
             className="scale-75 cursor-pointer"
           />
         </div>

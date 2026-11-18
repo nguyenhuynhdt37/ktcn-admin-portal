@@ -132,42 +132,46 @@ export function CategoryTreeSelect({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          disabled={disabled}
-          className="w-full h-auto min-h-10 justify-between font-normal bg-background px-3 py-2 hover:bg-muted/40 focus-visible:ring-1 focus-visible:ring-primary/30"
-        >
-          {selectedNode ? (
-            <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0 text-left">
-              <span className="text-[13px] font-medium text-foreground truncate w-full">
-                {selectedNode.name}
-              </span>
-              {breadcrumb && breadcrumb.length > 1 && (
-                <span className="text-[11px] text-muted-foreground truncate w-full">
-                  {breadcrumb.slice(0, -1).join(' › ')}
-                </span>
-              )}
-            </div>
-          ) : (
-            <span className="text-[13px] text-muted-foreground flex-1 text-left">{placeholder}</span>
-          )}
-          <div className="flex items-center gap-1 ml-2 shrink-0">
-            {selectedNode && !disabled && (
-              <span
-                role="button"
-                onClick={handleClear}
-                className="h-5 w-5 flex items-center justify-center rounded-full hover:bg-muted-foreground/20 transition-colors"
-              >
-                <X className="h-3 w-3 text-muted-foreground" />
-              </span>
+      <div className="relative">
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            className={cn(
+              'w-full h-auto min-h-10 justify-between font-normal bg-background px-3 py-2 hover:bg-muted/40 focus-visible:ring-1 focus-visible:ring-primary/30',
+              selectedNode && !disabled && 'pr-14'
             )}
-            <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/60" />
-          </div>
-        </Button>
-      </PopoverTrigger>
+          >
+            {selectedNode ? (
+              <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0 text-left">
+                <span className="text-[13px] font-medium text-foreground truncate w-full">
+                  {selectedNode.name}
+                </span>
+                {breadcrumb && breadcrumb.length > 1 && (
+                  <span className="text-[11px] text-muted-foreground truncate w-full">
+                    {breadcrumb.slice(0, -1).join(' › ')}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span className="text-[13px] text-muted-foreground flex-1 text-left">{placeholder}</span>
+            )}
+            <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/60 ml-2 shrink-0" />
+          </Button>
+        </PopoverTrigger>
+        {selectedNode && !disabled && (
+          <button
+            type="button"
+            aria-label="Xóa lựa chọn"
+            onClick={handleClear}
+            className="absolute right-8 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full hover:bg-muted-foreground/20 transition-colors cursor-pointer"
+          >
+            <X className="h-3 w-3 text-muted-foreground" />
+          </button>
+        )}
+      </div>
 
       <PopoverContent
         className="w-[var(--radix-popover-trigger-width)] p-0 z-50 shadow-xl"

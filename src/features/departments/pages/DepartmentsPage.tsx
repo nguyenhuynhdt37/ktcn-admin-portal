@@ -65,7 +65,7 @@ export function DepartmentsPage() {
     desc: sortDir === 'desc',
   }], [sortBy, sortDir])
 
-  const setPagination = useCallback((value: any) => {
+  const setPagination = useCallback((value: PaginationState | ((old: PaginationState) => PaginationState)) => {
     const params = new URLSearchParams(searchParams)
     if (typeof value === 'function') {
       const next = value({ pageIndex, pageSize })
@@ -75,10 +75,11 @@ export function DepartmentsPage() {
       params.set('page', String(value.pageIndex + 1))
       params.set('page_size', String(value.pageSize))
     }
+    setRowSelection({})
     setSearchParams(params)
   }, [pageIndex, pageSize, searchParams, setSearchParams])
 
-  const setSorting = useCallback((value: any) => {
+  const setSorting = useCallback((value: SortingState | ((old: SortingState) => SortingState)) => {
     const params = new URLSearchParams(searchParams)
     const nextSorting = typeof value === 'function' ? value(sorting) : value
     if (nextSorting.length > 0) {
@@ -86,6 +87,7 @@ export function DepartmentsPage() {
       params.set('sort_dir', nextSorting[0].desc ? 'desc' : 'asc')
       params.set('page', '1')
     }
+    setRowSelection({})
     setSearchParams(params)
   }, [sorting, searchParams, setSearchParams])
 

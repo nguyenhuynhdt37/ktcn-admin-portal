@@ -310,7 +310,8 @@ export function CategoryFormPanel({
                 </div>
               </div>
             ) : (
-              <div
+              <button
+                type="button"
                 onClick={() => thumbnailInputRef.current?.click()}
                 className="h-28 w-full border border-dashed rounded-lg flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-muted/30 transition-all text-muted-foreground hover:text-foreground"
               >
@@ -320,7 +321,7 @@ export function CategoryFormPanel({
                   <Camera className="h-5 w-5 opacity-70" />
                 )}
                 <span className="text-[10px] font-semibold">Tải ảnh lên (Khuyên dùng: 1:1, JPG/PNG)</span>
-              </div>
+              </button>
             )}
           </div>
 

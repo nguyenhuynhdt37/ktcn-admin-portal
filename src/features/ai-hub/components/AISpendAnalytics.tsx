@@ -16,7 +16,6 @@ export function AISpendAnalytics({
   isLoading,
   spendPeriod,
   onPeriodChange,
-  modelType,
 }: AISpendAnalyticsProps) {
   const totalCost = spendData?.time_series?.reduce((sum, item) => sum + item.total_cost, 0) || 0
   const totalTokens = spendData?.time_series?.reduce((sum, item) => sum + item.total_tokens, 0) || 0

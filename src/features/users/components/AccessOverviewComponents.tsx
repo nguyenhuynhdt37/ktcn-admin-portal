@@ -1,4 +1,4 @@
-import { ExternalLink, KeyRound, CheckCircle2, AlertTriangle, ShieldAlert } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import type { GrantedPermission, AccessibleFeature } from '@/features/users/types/accessOverview.types'

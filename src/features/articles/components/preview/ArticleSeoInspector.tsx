@@ -189,6 +189,7 @@ export default function ArticleSeoInspector({
                   alt={seoAnalysis.ogTitle}
                   className="h-full w-full object-cover"
                   onError={(e) => {
+                    e.currentTarget.onerror = null
                     e.currentTarget.src = fallbackCover
                   }}
                 />

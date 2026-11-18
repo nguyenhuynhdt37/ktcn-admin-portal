@@ -30,6 +30,7 @@ import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Switch } from '@/shared/components/ui/switch'
 import { Textarea } from '@/shared/components/ui/textarea'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { cn } from '@/lib/utils'
 
 type EditorSection = 'overview' | 'documents' | 'outcomes' | 'courses'
@@ -341,6 +342,7 @@ function AcademicEditor({
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [section, setSection] = useState<EditorSection>('overview')
   const [courseSearch, setCourseSearch] = useState('')
+  const [confirmRemoveVersion, setConfirmRemoveVersion] = useState(false)
   const activeIndex = Math.min(selectedIndex, Math.max(0, profile.versions.length - 1))
   const version = profile.versions[activeIndex]
 
@@ -358,9 +360,14 @@ function AcademicEditor({
   }
 
   const removeVersion = () => {
-    if (!version || !window.confirm(`Xóa phiên bản ${version.version_year}?`)) return
+    if (!version) return
+    setConfirmRemoveVersion(true)
+  }
+
+  const handleConfirmRemoveVersion = () => {
     onChange({ versions: profile.versions.filter((_, index) => index !== activeIndex) })
     setSelectedIndex(Math.max(0, activeIndex - 1))
+    setConfirmRemoveVersion(false)
   }
 
   if (!version) {
@@ -615,6 +622,16 @@ function AcademicEditor({
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmRemoveVersion}
+        onOpenChange={setConfirmRemoveVersion}
+        title="Xác nhận xóa phiên bản"
+        description={version ? `Xóa phiên bản ${version.version_year}?` : ''}
+        confirmText="Xóa"
+        variant="destructive"
+        onConfirm={handleConfirmRemoveVersion}
+      />
     </div>
   )
 }

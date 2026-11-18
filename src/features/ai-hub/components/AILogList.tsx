@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-  Search,
   Clock,
   Coins,
   BrainCircuit,
@@ -51,7 +50,7 @@ interface AILogListProps {
   onUserFilterChange: (user: string) => void
   chatModels: AIModel[]
   embeddingModels: AIModel[]
-  usersList: any[]
+  usersList: Array<{ id: string; full_name?: string | null; username?: string }>
   modelType: 'chat' | 'embedding'
 }
 
@@ -125,7 +124,7 @@ export function AILogList({
                 <SelectContent className="text-xs">
                   <SelectItem value="ALL" className="cursor-pointer">Tất cả người dùng</SelectItem>
                   <SelectItem value="SYSTEM" className="cursor-pointer">Hệ thống tự động</SelectItem>
-                  {usersList?.map((user: any) => (
+                  {usersList?.map((user) => (
                     <SelectItem key={user.id} value={user.id} className="cursor-pointer text-xs">
                       {user.full_name || user.username}
                     </SelectItem>
@@ -214,13 +213,13 @@ export function AILogList({
                       {log.username || 'System'}
                     </TableCell>
                     <TableCell className="text-xs font-mono tabular-nums text-foreground/80">
-                      {log.tokens_prompt + log.tokens_completion}
+                      {(log.tokens_prompt ?? 0) + (log.tokens_completion ?? 0)}
                     </TableCell>
                     <TableCell className="text-xs font-mono tabular-nums text-foreground/80 font-bold">
-                      ${log.cost.toFixed(5)}
+                      ${(log.cost ?? 0).toFixed(5)}
                     </TableCell>
                     <TableCell className="text-xs font-mono tabular-nums text-foreground/80">
-                      {log.latency_ms} ms
+                      {log.latency_ms ?? 0} ms
                     </TableCell>
                   </TableRow>
                 ))

@@ -18,18 +18,17 @@ interface AuditLogDetailSheetProps {
 }
 
 export function AuditLogDetailSheet({ item, open, onOpenChange }: AuditLogDetailSheetProps) {
-  if (!item) return null
-
-  const actionMeta = ACTION_COLORS[item.action]
-  const targetLabel = TARGET_TYPE_LABELS[item.target_type] || item.target_type
+  const actionMeta = item ? ACTION_COLORS[item.action] : undefined
+  const targetLabel = item ? (TARGET_TYPE_LABELS[item.target_type] || item.target_type) : ''
 
   // Hàm render changes thông minh
-  const renderChanges = (changes: Record<string, any>) => {
+  const renderChanges = (changes: Record<string, unknown>) => {
     return (
       <div className="space-y-2">
         {Object.entries(changes).map(([key, value]) => {
           // Kiểm tra xem value có dạng {"old": ..., "new": ...} không
-          const isOldNew = value && typeof value === 'object' && ('old' in value || 'new' in value)
+          const isOldNew = Boolean(value && typeof value === 'object' && ('old' in value || 'new' in value))
+          const oldNewVal = value as { old?: unknown; new?: unknown }
           
           return (
             <div key={key} className="p-3 rounded-xl border border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-950/30 flex flex-col gap-1.5">
@@ -39,13 +38,13 @@ export function AuditLogDetailSheet({ item, open, onOpenChange }: AuditLogDetail
                   <div className="space-y-0.5">
                     <span className="text-[9px] text-slate-400 font-semibold">Giá trị cũ</span>
                     <div className="p-2 rounded bg-rose-50/30 dark:bg-rose-950/10 text-rose-600 dark:text-rose-400 font-mono break-all border border-rose-100/10 text-xs">
-                      {String(value.old ?? '—')}
+                      {String(oldNewVal.old ?? '—')}
                     </div>
                   </div>
                   <div className="space-y-0.5">
                     <span className="text-[9px] text-slate-400 font-semibold">Giá trị mới</span>
                     <div className="p-2 rounded bg-emerald-50/30 dark:bg-emerald-950/10 text-emerald-600 dark:text-emerald-400 font-mono break-all border border-emerald-100/10 text-xs">
-                      {String(value.new ?? '—')}
+                      {String(oldNewVal.new ?? '—')}
                     </div>
                   </div>
                 </div>
@@ -74,73 +73,75 @@ export function AuditLogDetailSheet({ item, open, onOpenChange }: AuditLogDetail
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-6">
-          {/* Action Badge */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-400">Hành động</label>
-            <div>
-              <Badge variant="secondary" className={`text-xs font-bold px-3 py-1 rounded-full border ${actionMeta?.className || 'bg-slate-100 text-slate-800'}`}>
-                {actionMeta?.label || item.action}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Actor */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-400">Người thực hiện</label>
-            <div className="flex items-center gap-2 text-sm bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100/50 dark:border-slate-800">
-              <User className="h-4 w-4 text-indigo-500 shrink-0" />
-              <span className="font-semibold text-slate-800 dark:text-slate-200">{item.actor_username}</span>
-            </div>
-          </div>
-
-          {/* Target */}
-          <div className="grid grid-cols-2 gap-4">
+        {item && (
+          <div className="mt-6 space-y-6">
+            {/* Action Badge */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400">Loại đối tượng</label>
-              <div className="flex items-center gap-2 text-sm bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100/50 dark:border-slate-800">
-                <Layers className="h-4 w-4 text-indigo-500 shrink-0" />
-                <span className="font-medium text-slate-700 dark:text-slate-300">{targetLabel}</span>
+              <p className="text-xs font-semibold text-slate-400">Hành động</p>
+              <div>
+                <Badge variant="secondary" className={`text-xs font-bold px-3 py-1 rounded-full border ${actionMeta?.className || 'bg-slate-100 text-slate-800'}`}>
+                  {actionMeta?.label || item.action}
+                </Badge>
               </div>
             </div>
-            {item.target_id && (
+
+            {/* Actor */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-slate-400">Người thực hiện</p>
+              <div className="flex items-center gap-2 text-sm bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100/50 dark:border-slate-800">
+                <User className="h-4 w-4 text-indigo-500 shrink-0" />
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{item.actor_username || '—'}</span>
+              </div>
+            </div>
+
+            {/* Target */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-400">ID đối tượng</label>
-                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-800">
-                  <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 break-all select-all leading-tight">{item.target_id}</p>
+                <p className="text-xs font-semibold text-slate-400">Loại đối tượng</p>
+                <div className="flex items-center gap-2 text-sm bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100/50 dark:border-slate-800">
+                  <Layers className="h-4 w-4 text-indigo-500 shrink-0" />
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{targetLabel}</span>
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Metadata */}
-          <div className="grid grid-cols-1 gap-2.5 bg-slate-50/50 dark:bg-slate-900/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-900">
-            <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400">
-              <Clock className="h-4 w-4 text-slate-400 shrink-0" />
-              <span>{dayjs(item.created_at).format('DD/MM/YYYY HH:mm:ss')}</span>
+              {item.target_id && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold text-slate-400">ID đối tượng</p>
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-800">
+                    <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 break-all select-all leading-tight">{item.target_id}</p>
+                  </div>
+                </div>
+              )}
             </div>
-            {item.ip_address && (
+
+            {/* Metadata */}
+            <div className="grid grid-cols-1 gap-2.5 bg-slate-50/50 dark:bg-slate-900/20 p-4 rounded-2xl border border-slate-100 dark:border-slate-900">
               <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400">
-                <Globe className="h-4 w-4 text-slate-400 shrink-0" />
-                <span className="font-mono">{item.ip_address}</span>
+                <Clock className="h-4 w-4 text-slate-400 shrink-0" />
+                <span>{dayjs(item.created_at).format('DD/MM/YYYY HH:mm:ss')}</span>
               </div>
-            )}
-            {item.user_agent && (
-              <div className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-400">
-                <Monitor className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
-                <span className="text-[11px] text-slate-500 leading-relaxed font-mono break-all">{item.user_agent}</span>
+              {item.ip_address && (
+                <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400">
+                  <Globe className="h-4 w-4 text-slate-400 shrink-0" />
+                  <span className="font-mono">{item.ip_address}</span>
+                </div>
+              )}
+              {item.user_agent && (
+                <div className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-400">
+                  <Monitor className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+                  <span className="text-[11px] text-slate-500 leading-relaxed font-mono break-all">{item.user_agent}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Changes JSON */}
+            {item.changes && Object.keys(item.changes).length > 0 && (
+              <div className="space-y-2 pb-4">
+                <p className="text-xs font-semibold text-slate-400">Chi tiết thay đổi</p>
+                {renderChanges(item.changes)}
               </div>
             )}
           </div>
-
-          {/* Changes JSON */}
-          {item.changes && Object.keys(item.changes).length > 0 && (
-            <div className="space-y-2 pb-4">
-              <label className="text-xs font-semibold text-slate-400">Chi tiết thay đổi</label>
-              {renderChanges(item.changes)}
-            </div>
-          )}
-        </div>
+        )}
       </SheetContent>
     </Sheet>
   )

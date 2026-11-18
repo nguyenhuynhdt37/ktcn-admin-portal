@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
 import { Label } from '@/shared/components/ui/label'
 import { CmsEditor } from '@/shared/components/CmsEditor'
-import { Maximize2, Minimize2, Languages, Loader2, Sparkles } from 'lucide-react'
+import { Languages, Loader2, Sparkles } from 'lucide-react'
 import { AiRewriteModal } from './AiRewriteModal'
 
 interface ArticleEditorSectionProps {

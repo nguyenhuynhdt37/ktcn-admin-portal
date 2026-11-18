@@ -25,6 +25,7 @@ import {
 } from '@/shared/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { getMediaUrl } from '@/features/articles/utils/media'
+import { toSafeExternalHref } from '@/shared/utils/security'
 import type { Staff, StaffMoveDirection } from '../types'
 
 interface TeacherColumnsProps {
@@ -196,18 +197,23 @@ export const getTeacherColumns = ({
               <span className="font-mono text-[10px]">{item.phone}</span>
             </div>
           )}
-          {item.website && (
-            <a
-              href={item.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[9px] text-primary hover:underline flex items-center gap-1 w-fit mt-0.5"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Globe className="h-2.5 w-2.5 shrink-0" />
-              <span className="truncate max-w-[120px]">{item.website.replace(/^https?:\/\//, '')}</span>
-            </a>
-          )}
+          {item.website && (() => {
+            const safeWebsite = toSafeExternalHref(item.website)
+            return safeWebsite ? (
+              <a
+                href={safeWebsite}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[9px] text-primary hover:underline flex items-center gap-1 w-fit mt-0.5"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Globe className="h-2.5 w-2.5 shrink-0" />
+                <span className="truncate max-w-[120px]">{item.website.replace(/^https?:\/\//, '')}</span>
+              </a>
+            ) : (
+              <span className="text-[9px] text-muted-foreground truncate max-w-[120px] mt-0.5">{item.website}</span>
+            )
+          })()}
           {!item.phone && !item.website && <span className="text-slate-400">-</span>}
         </div>
       )
@@ -269,6 +275,7 @@ export const getTeacherColumns = ({
           <Switch
             checked={item.is_active}
             onCheckedChange={(checked) => onToggleStatus(item.id, checked)}
+            aria-label={`Bật/tắt trạng thái giảng viên ${item.full_name}`}
             className="scale-75 cursor-pointer"
           />
         </div>

@@ -9,7 +9,6 @@ import {
   AlertCircle,
   RefreshCw,
   CheckCircle2,
-  Users,
   Sparkles,
   Trash2,
   X,
@@ -82,15 +81,17 @@ export function TeachersPage() {
 
   // Đồng bộ search term từ ô input lên URL sau khi debounced
   useEffect(() => {
+    const trimmed = debouncedSearchQuery.trim()
+    if (trimmed === urlSearch) return
     const params = new URLSearchParams(searchParams)
-    if (debouncedSearchQuery.trim()) {
-      params.set('search', debouncedSearchQuery.trim())
+    if (trimmed) {
+      params.set('search', trimmed)
     } else {
       params.delete('search')
     }
     params.set('page', '1') // reset trang khi tìm kiếm
     setSearchParams(params)
-  }, [debouncedSearchQuery])
+  }, [debouncedSearchQuery, urlSearch, searchParams, setSearchParams])
 
   // Custom setters để đồng bộ filter lên URL
   const handleDeptFilterChange = useCallback((val: string) => {
@@ -101,6 +102,7 @@ export function TeachersPage() {
       params.delete('department_id')
     }
     params.set('page', '1')
+    setRowSelection({})
     setSearchParams(params)
   }, [searchParams, setSearchParams])
 
@@ -112,6 +114,7 @@ export function TeachersPage() {
       params.delete('position_id')
     }
     params.set('page', '1')
+    setRowSelection({})
     setSearchParams(params)
   }, [searchParams, setSearchParams])
 
@@ -123,6 +126,7 @@ export function TeachersPage() {
       params.delete('academic_title_id')
     }
     params.set('page', '1')
+    setRowSelection({})
     setSearchParams(params)
   }, [searchParams, setSearchParams])
 
@@ -134,19 +138,7 @@ export function TeachersPage() {
       params.delete('degree_id')
     }
     params.set('page', '1')
-    setSearchParams(params)
-  }, [searchParams, setSearchParams])
-
-  const handleStatusFilterChange = useCallback((val: string) => {
-    const params = new URLSearchParams(searchParams)
-    if (val === 'active') {
-      params.set('is_active', 'true')
-    } else if (val === 'inactive') {
-      params.set('is_active', 'false')
-    } else {
-      params.delete('is_active')
-    }
-    params.set('page', '1')
+    setRowSelection({})
     setSearchParams(params)
   }, [searchParams, setSearchParams])
 
@@ -160,7 +152,7 @@ export function TeachersPage() {
     desc: sortDir === 'desc',
   }], [sortBy, sortDir])
 
-  const setPagination = useCallback((value: any) => {
+  const setPagination = useCallback((value: PaginationState | ((old: PaginationState) => PaginationState)) => {
     const params = new URLSearchParams(searchParams)
     if (typeof value === 'function') {
       const next = value({ pageIndex, pageSize })
@@ -170,10 +162,11 @@ export function TeachersPage() {
       params.set('page', String(value.pageIndex + 1))
       params.set('page_size', String(value.pageSize))
     }
+    setRowSelection({})
     setSearchParams(params)
   }, [pageIndex, pageSize, searchParams, setSearchParams])
 
-  const setSorting = useCallback((value: any) => {
+  const setSorting = useCallback((value: SortingState | ((old: SortingState) => SortingState)) => {
     const params = new URLSearchParams(searchParams)
     const nextSorting = typeof value === 'function' ? value(sorting) : value
     if (nextSorting.length > 0) {
@@ -181,6 +174,7 @@ export function TeachersPage() {
       params.set('sort_dir', nextSorting[0].desc ? 'desc' : 'asc')
       params.set('page', '1')
     }
+    setRowSelection({})
     setSearchParams(params)
   }, [sorting, searchParams, setSearchParams])
 
@@ -248,7 +242,7 @@ export function TeachersPage() {
   const toggleStatusMutation = useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       teacherService.updateStatus(id, { is_active }),
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success(`Đã cập nhật trạng thái hồ sơ của giảng viên`)
       queryClient.invalidateQueries({ queryKey: ['teachers'] })
       queryClient.invalidateQueries({ queryKey: ['teachers-stats'] })

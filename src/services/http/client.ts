@@ -36,19 +36,25 @@ httpClient.interceptors.request.use(
   }
 )
 
+const redirectToLogin = () => {
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login'
+  }
+}
+
 httpClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+    const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined
 
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && originalRequest) {
       const responseData = error.response?.data as { success?: boolean; error?: { code?: string; message?: string } } | undefined
       const errorCode = responseData?.error?.code
 
       // If the refresh request itself fails with 401
       if (originalRequest.url?.includes('/auth/refresh')) {
         useAuthStore.getState().logout()
-        window.location.href = '/login'
+        redirectToLogin()
         return Promise.reject(error)
       }
 
@@ -57,7 +63,7 @@ httpClient.interceptors.response.use(
         useAuthStore.getState().logout()
         const errorMessage = responseData?.error?.message || 'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.'
         toast.error(errorMessage)
-        window.location.href = '/login'
+        redirectToLogin()
         return Promise.reject(error)
       }
 
@@ -91,7 +97,7 @@ httpClient.interceptors.response.use(
           processQueue(refreshError)
           isRefreshing = false
           useAuthStore.getState().logout()
-          window.location.href = '/login'
+          redirectToLogin()
           return Promise.reject(refreshError)
         }
       } else {
@@ -102,16 +108,17 @@ httpClient.interceptors.response.use(
         if (!originalRequest.url?.includes('/auth/login')) {
           const errorMessage = responseData?.error?.message || 'Phiên làm việc không hợp lệ hoặc đã hết hạn'
           toast.error(errorMessage)
-          window.location.href = '/login'
+          redirectToLogin()
         }
         return Promise.reject(error)
       }
     }
 
+    const isCanceled = axios.isCancel(error)
     const isRefreshCall = originalRequest?.url?.includes('/auth/refresh')
     const isUnauthorized = error.response?.status === 401
 
-    if (!isRefreshCall && !isUnauthorized) {
+    if (!isCanceled && !isRefreshCall && !isUnauthorized) {
       const responseData = error.response?.data as { error?: { message?: string }; message?: string } | undefined
       const errorMessage =
         responseData?.error?.message ||

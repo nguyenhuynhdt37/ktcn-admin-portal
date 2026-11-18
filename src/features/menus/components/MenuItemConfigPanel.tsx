@@ -1,9 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useMemo } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import { X, Save, Link as LinkIcon, Eye, EyeOff, Smile, Loader2, Check, ChevronsUpDown, Search, AlertTriangle, Languages } from 'lucide-react'
-import * as LucideIcons from 'lucide-react'
+import { X, Save, Link as LinkIcon, Eye, EyeOff, Loader2, Check, ChevronsUpDown, Search, AlertTriangle, Languages } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
@@ -22,32 +19,10 @@ import {
   PopoverTrigger,
 } from '@/shared/components/ui/popover'
 import { menusService } from '../services/menusService'
-import { articleService } from '@/features/articles/services/articleService'
-import { departmentService } from '@/features/departments/services/departmentService'
 import { CategoryTreeSelect } from './CategoryTreeSelect'
-import { useDebounce } from '@/shared/hooks/useDebounce'
-import type { MenuItemPayload } from '../types'
-import { useAuth } from '@/app/providers/AuthProvider'
 
 import { useMenuItemConfig } from '../hooks/useMenuItemConfig'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
-
-// Helper chuyển đổi tên icon sang PascalCase để khớp thư viện Lucide
-function toPascalCase(str: string): string {
-  return str
-    .split('-')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join('')
-}
-
-// Component vẽ icon Lucide động
-export function LucideIcon({ name, size = 16, className }: { name: string; size?: number; className?: string }) {
-  if (!name) return null
-  const pascalName = toPascalCase(name)
-  const IconComponent = (LucideIcons as any)[pascalName]
-  if (!IconComponent) return null
-  return <IconComponent size={size} className={className} />
-}
 
 interface MenuItemConfigPanelProps {
   menuId: string
@@ -474,45 +449,49 @@ export function ArticleSelect({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          disabled={disabled}
-          className="w-full h-auto min-h-10 justify-between font-normal bg-background px-3 py-2 hover:bg-muted/40 focus-visible:ring-1 focus-visible:ring-primary/30"
-        >
-          {selectedArticle ? (
-            <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0 text-left">
-              <span className="text-[13px] font-medium text-foreground line-clamp-2 leading-snug">
-                {selectedArticle.translations?.vi?.title || selectedArticle.translations?.en?.title || selectedArticle.title || '(Chưa có tiêu đề)'}
-              </span>
-              <span className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-1.5">
-                {selectedArticle.category?.name && (
-                  <span className="bg-muted px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium">{selectedArticle.category.name}</span>
-                )}
-                {selectedArticle.view_count != null && (
-                  <span>{selectedArticle.view_count.toLocaleString()} lượt xem</span>
-                )}
-              </span>
-            </div>
-          ) : (
-            <span className="text-[13px] text-muted-foreground flex-1 text-left">Chọn bài viết liên kết...</span>
-          )}
-          <div className="flex items-center gap-1 ml-2 shrink-0">
-            {selectedArticle && !disabled && (
-              <span
-                role="button"
-                onClick={handleClear}
-                className="h-5 w-5 flex items-center justify-center rounded-full hover:bg-muted-foreground/20 transition-colors"
-              >
-                <X className="h-3 w-3 text-muted-foreground" />
-              </span>
+      <div className="relative">
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            className={cn(
+              'w-full h-auto min-h-10 justify-between font-normal bg-background px-3 py-2 hover:bg-muted/40 focus-visible:ring-1 focus-visible:ring-primary/30',
+              selectedArticle && !disabled && 'pr-14'
             )}
-            <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/60" />
-          </div>
-        </Button>
-      </PopoverTrigger>
+          >
+            {selectedArticle ? (
+              <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0 text-left">
+                <span className="text-[13px] font-medium text-foreground line-clamp-2 leading-snug">
+                  {selectedArticle.translations?.vi?.title || selectedArticle.translations?.en?.title || selectedArticle.title || '(Chưa có tiêu đề)'}
+                </span>
+                <span className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-1.5">
+                  {selectedArticle.category?.name && (
+                    <span className="bg-muted px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium">{selectedArticle.category.name}</span>
+                  )}
+                  {selectedArticle.view_count != null && (
+                    <span>{selectedArticle.view_count.toLocaleString()} lượt xem</span>
+                  )}
+                </span>
+              </div>
+            ) : (
+              <span className="text-[13px] text-muted-foreground flex-1 text-left">Chọn bài viết liên kết...</span>
+            )}
+            <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/60 ml-2 shrink-0" />
+          </Button>
+        </PopoverTrigger>
+        {selectedArticle && !disabled && (
+          <button
+            type="button"
+            aria-label="Xóa lựa chọn"
+            onClick={handleClear}
+            className="absolute right-8 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full hover:bg-muted-foreground/20 transition-colors cursor-pointer"
+          >
+            <X className="h-3 w-3 text-muted-foreground" />
+          </button>
+        )}
+      </div>
 
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 z-50 shadow-xl" align="start" sideOffset={4}>
         <div className="flex flex-col max-h-[380px] overflow-hidden rounded-lg border bg-popover">
@@ -664,45 +643,49 @@ export function DepartmentSelect({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          disabled={disabled}
-          className="w-full h-auto min-h-10 justify-between font-normal bg-background px-3 py-2 hover:bg-muted/40 focus-visible:ring-1 focus-visible:ring-primary/30"
-        >
-          {selectedDept ? (
-            <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0 text-left">
-              <span className="text-[13px] font-medium text-foreground truncate w-full">
-                {selectedDept.name}
-              </span>
-              <span className="text-[11px] text-muted-foreground flex items-center gap-2">
-                {selectedDept.staff_count != null && (
-                  <span>{selectedDept.staff_count} giảng viên</span>
-                )}
-                {selectedDept.email && (
-                  <span className="truncate max-w-[140px]">{selectedDept.email}</span>
-                )}
-              </span>
-            </div>
-          ) : (
-            <span className="text-[13px] text-muted-foreground flex-1 text-left">Chọn bộ môn liên kết...</span>
-          )}
-          <div className="flex items-center gap-1 ml-2 shrink-0">
-            {selectedDept && !disabled && (
-              <span
-                role="button"
-                onClick={handleClear}
-                className="h-5 w-5 flex items-center justify-center rounded-full hover:bg-muted-foreground/20 transition-colors"
-              >
-                <X className="h-3 w-3 text-muted-foreground" />
-              </span>
+      <div className="relative">
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            className={cn(
+              'w-full h-auto min-h-10 justify-between font-normal bg-background px-3 py-2 hover:bg-muted/40 focus-visible:ring-1 focus-visible:ring-primary/30',
+              selectedDept && !disabled && 'pr-14'
             )}
-            <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/60" />
-          </div>
-        </Button>
-      </PopoverTrigger>
+          >
+            {selectedDept ? (
+              <div className="flex flex-col items-start gap-0.5 flex-1 min-w-0 text-left">
+                <span className="text-[13px] font-medium text-foreground truncate w-full">
+                  {selectedDept.name}
+                </span>
+                <span className="text-[11px] text-muted-foreground flex items-center gap-2">
+                  {selectedDept.staff_count != null && (
+                    <span>{selectedDept.staff_count} giảng viên</span>
+                  )}
+                  {selectedDept.email && (
+                    <span className="truncate max-w-[140px]">{selectedDept.email}</span>
+                  )}
+                </span>
+              </div>
+            ) : (
+              <span className="text-[13px] text-muted-foreground flex-1 text-left">Chọn bộ môn liên kết...</span>
+            )}
+            <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/60 ml-2 shrink-0" />
+          </Button>
+        </PopoverTrigger>
+        {selectedDept && !disabled && (
+          <button
+            type="button"
+            aria-label="Xóa lựa chọn"
+            onClick={handleClear}
+            className="absolute right-8 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full hover:bg-muted-foreground/20 transition-colors cursor-pointer"
+          >
+            <X className="h-3 w-3 text-muted-foreground" />
+          </button>
+        )}
+      </div>
 
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 z-50 shadow-xl" align="start" sideOffset={4}>
         <div className="flex flex-col max-h-[360px] overflow-hidden rounded-lg border bg-popover">

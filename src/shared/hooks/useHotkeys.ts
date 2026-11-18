@@ -63,7 +63,7 @@ export function useHotkeys(
       const mac = isMac()
       
       // modMatch: Nếu yêu cầu mod/cmd/ctrl thì kiểm tra tương ứng
-      let modMatch = true
+      let modMatch: boolean
       if (requiresMod) {
         modMatch = mac ? event.metaKey : event.ctrlKey
       } else if (requiresCmd) {
@@ -82,16 +82,13 @@ export function useHotkeys(
       const shiftMatch = requiresShift ? event.shiftKey : !event.shiftKey
 
       // keyMatch: So sánh phím chính
-      let keyMatch = false
       const pressedKey = event.key.toLowerCase()
-
-      if (mainKey === '?') {
-        keyMatch = event.key === '?'
-      } else if (mainKey === '/') {
-        keyMatch = event.key === '/'
-      } else {
-        keyMatch = pressedKey === mainKey
-      }
+      const keyMatch =
+        mainKey === '?'
+          ? event.key === '?'
+          : mainKey === '/'
+            ? event.key === '/'
+            : pressedKey === mainKey
 
       // Nếu tất cả khớp, thực thi callback
       if (modMatch && altMatch && shiftMatch && keyMatch) {

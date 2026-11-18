@@ -1,6 +1,4 @@
 type StorageKeys = {
-  auth_token: string
-  refresh_token: string
   theme: 'light' | 'dark'
   user: {
     id: string

@@ -140,8 +140,8 @@ export function AuditLogsPage() {
 
     return {
       total: totalCount,
-      uniqueIps: uniqueIps || 1,
-      uniqueActors: uniqueActors || 1,
+      uniqueIps,
+      uniqueActors,
       criticals: criticalActions
     }
   }, [data])
@@ -159,18 +159,21 @@ export function AuditLogsPage() {
     {
       accessorKey: 'actor_username',
       header: () => <span className="font-semibold text-xs uppercase tracking-wider">Người thực hiện</span>,
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-full bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/30">
-            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">
-              {String(row.getValue('actor_username'))[0]}
+      cell: ({ row }) => {
+        const username = row.getValue('actor_username') as string | null | undefined
+        return (
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded-full bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/30">
+              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">
+                {username?.trim().charAt(0) || '?'}
+              </span>
+            </div>
+            <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
+              {username || '—'}
             </span>
           </div>
-          <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
-            {row.getValue('actor_username')}
-          </span>
-        </div>
-      ),
+        )
+      },
     },
     {
       accessorKey: 'action',

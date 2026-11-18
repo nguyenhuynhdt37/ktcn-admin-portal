@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Cpu,
   Play,
   RotateCcw,
   Sparkles,
   Loader2,
-  Globe,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -40,12 +38,7 @@ export function AIEmbeddingSandbox({ embeddingModels, defaultModel }: AIEmbeddin
     actual_model: string;
   } | null>(null)
 
-  // Đồng bộ testModel mặc định là defaultModel
-  useEffect(() => {
-    if (defaultModel && !testModel) {
-      setTestModel(defaultModel)
-    }
-  }, [defaultModel, testModel])
+  const effectiveModel = testModel || defaultModel
 
   // Mutation gọi playground test sinh vector
   const embeddingPlaygroundMutation = useMutation({
@@ -58,8 +51,9 @@ export function AIEmbeddingSandbox({ embeddingModels, defaultModel }: AIEmbeddin
       queryClient.invalidateQueries({ queryKey: ['ai-logs'] })
       queryClient.invalidateQueries({ queryKey: ['ai-spend'] })
     },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.detail || 'Lỗi khi gọi API sinh vector embedding.'
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { detail?: string } } }
+      const msg = err?.response?.data?.detail || 'Lỗi khi gọi API sinh vector embedding.'
       toast.error(msg)
     },
   })
@@ -70,7 +64,7 @@ export function AIEmbeddingSandbox({ embeddingModels, defaultModel }: AIEmbeddin
       return
     }
     embeddingPlaygroundMutation.mutate({
-      model: testModel || defaultModel,
+      model: effectiveModel,
       input: testInput,
     })
   }
@@ -90,7 +84,7 @@ export function AIEmbeddingSandbox({ embeddingModels, defaultModel }: AIEmbeddin
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Chọn mô hình thử nghiệm</label>
-            <Select value={testModel} onValueChange={setTestModel}>
+            <Select value={effectiveModel} onValueChange={setTestModel}>
               <SelectTrigger className="bg-background h-9 text-xs cursor-pointer border-border/80">
                 <SelectValue placeholder="Chọn mô hình test" />
               </SelectTrigger>
@@ -155,7 +149,7 @@ export function AIEmbeddingSandbox({ embeddingModels, defaultModel }: AIEmbeddin
                   <span className="text-xs font-mono font-bold text-foreground truncate max-w-[140px]" title={embeddingResult.actual_model}>
                     {embeddingResult.actual_model}
                   </span>
-                  {embeddingResult.actual_model !== testModel && (
+                  {embeddingResult.actual_model !== effectiveModel && (
                     <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-[9px] py-0 px-1.5">
                       Fallback
                     </Badge>
@@ -183,7 +177,14 @@ export function AIEmbeddingSandbox({ embeddingModels, defaultModel }: AIEmbeddin
                 style={{ gridTemplateColumns: 'repeat(20, minmax(0, 1fr))' }}
               >
                 {(() => {
-                  const subset = embeddingResult.embedding.slice(0, 80)
+                  const subset = (embeddingResult.embedding ?? []).slice(0, 80)
+                  if (subset.length === 0) {
+                    return (
+                      <span className="col-span-full text-[11px] text-slate-400">
+                        Không có dữ liệu vector để hiển thị.
+                      </span>
+                    )
+                  }
                   const minVal = Math.min(...subset)
                   const maxVal = Math.max(...subset)
                   const range = maxVal - minVal || 1

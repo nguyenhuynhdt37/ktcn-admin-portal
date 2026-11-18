@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { HexColorPicker } from 'react-colorful'
 import {
   Popover,
@@ -27,17 +27,15 @@ export function ColorPickerField({
   onChange,
 }: ColorPickerFieldProps) {
   const [open, setOpen] = useState(false)
-  const [hexInput, setHexInput] = useState(value || '')
-
-  useEffect(() => {
-    setHexInput(value || '')
-  }, [value])
+  const [customHexInput, setCustomHexInput] = useState<string | null>(null)
+  const hexInput = customHexInput ?? (value || '')
 
   const handleHexInputChange = (text: string) => {
     const cleaned = text.startsWith('#') ? text : `#${text}`
-    setHexInput(cleaned)
+    setCustomHexInput(cleaned)
     if (/^#[0-9A-Fa-f]{6}$/.test(cleaned)) {
       onChange(cleaned)
+      setCustomHexInput(null)
     }
   }
 
@@ -81,7 +79,7 @@ export function ColorPickerField({
                   style={{ backgroundColor: color }}
                   onClick={() => {
                     onChange(color)
-                    setHexInput(color)
+                    setCustomHexInput(null)
                   }}
                   title={color}
                 />
@@ -96,7 +94,7 @@ export function ColorPickerField({
               color={value || '#3B82F6'}
               onChange={(newColor) => {
                 onChange(newColor)
-                setHexInput(newColor)
+                setCustomHexInput(null)
               }}
               style={{ width: '100%', height: '120px' }}
             />

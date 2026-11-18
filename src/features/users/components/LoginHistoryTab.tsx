@@ -5,7 +5,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 
 dayjs.extend(relativeTime)
 import type { ColumnDef } from '@tanstack/react-table'
-import { Globe, Clock, CheckCircle2, XCircle, RefreshCw, Loader2 } from 'lucide-react'
+import { Globe, CheckCircle2, XCircle, RefreshCw, Loader2 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
 import {
@@ -18,10 +18,6 @@ import {
 import { DataTable } from '@/shared/components/DataTable'
 import { userActivityService } from '@/features/users/services/userActivityService'
 import type { LoginHistoryItem } from '@/features/users/types/userActivity.types'
-
-interface LoginHistoryTabProps {
-  userId: string
-}
 
 export function LoginHistoryTab({ userId }: { userId: string }) {
   const [page, setPage] = useState(0)

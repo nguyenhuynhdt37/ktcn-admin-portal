@@ -8,7 +8,6 @@ import {
   Folder,
   EyeOff,
   Plus,
-  Lock,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react'
@@ -218,10 +217,11 @@ export function SortableCategoryNode({
           {/* Tiêu đề & badge */}
           <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span
+              <button
+                type="button"
                 onClick={onEdit}
                 className={cn(
-                  'text-sm font-medium truncate cursor-pointer hover:text-primary transition-colors',
+                  'text-left text-sm font-medium truncate cursor-pointer hover:text-primary transition-colors',
                   (deletedAt || status === 'DELETED') && 'text-muted-foreground line-through opacity-50',
                   !isVisible && 'opacity-70'
                 )}
@@ -233,7 +233,7 @@ export function SortableCategoryNode({
                 >
                   {articleCount} bài viết
                 </span>
-              </span>
+              </button>
             </div>
             
             {/* Tag dịch thuật VI / EN */}

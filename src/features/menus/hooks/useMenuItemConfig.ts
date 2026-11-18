@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { httpClient } from '@/services/http/client'
@@ -80,7 +80,6 @@ export function useMenuItemConfig({
   menuId,
   itemId,
   item,
-  onClose,
   refetchTree,
 }: UseMenuItemConfigProps) {
   const { hasPermission } = useAuth()
@@ -109,20 +108,14 @@ export function useMenuItemConfig({
     return { ...INITIAL_FORM_STATE }
   })
 
-  // Ref lưu giá trị tiếng Việt đã dịch gần nhất để tránh dịch lặp lại
-  const lastTranslatedViRef = useState<string>('')
-  const [lastTranslatedVi, setLastTranslatedVi] = lastTranslatedViRef
-
-  // Đổ dữ liệu item ban đầu khi mở edit
-  useEffect(() => {
+  const [prevItem, setPrevItem] = useState(item)
+  if (item !== prevItem) {
+    setPrevItem(item)
     if (item) {
       const parsedTrans = parseMenuTranslations(item.translations)
-      
-      // Fallback
       if (!parsedTrans.vi.title && item.title) {
         parsedTrans.vi.title = item.title
       }
-
       setForm({
         target_type: item.target_type || null,
         target_id: item.target_id || null,
@@ -130,20 +123,13 @@ export function useMenuItemConfig({
         is_visible: item.is_visible !== false,
         translations: parsedTrans,
       })
-      setLastTranslatedVi(parsedTrans.vi.title)
     }
-  }, [item, setLastTranslatedVi])
-
+  }
 
   const targetType = form.target_type || 'NONE'
   const targetId = form.target_id || ''
   const openInNewTab = form.open_in_new_tab
   const isVisible = form.is_visible
-
-  // Cập nhật trường phẳng
-  const handleFieldChange = useCallback((field: keyof MenuItemFormState, value: any) => {
-    setForm((prev) => ({ ...prev, [field]: value }))
-  }, [])
 
   // Cập nhật trường dịch thuật (title hoặc external_url)
   const handleTranslationChange = useCallback((lang: 'vi' | 'en', field: 'title' | 'external_url', value: string) => {

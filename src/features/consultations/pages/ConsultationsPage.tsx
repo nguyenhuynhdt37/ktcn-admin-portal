@@ -65,10 +65,18 @@ export function ConsultationsPage() {
     [page, search, status]
   )
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['consultations', params],
     queryFn: () => consultationService.list(params),
   })
+
+  const exportParams = useMemo(
+    () => ({
+      ...(search.trim() ? { search: search.trim() } : {}),
+      ...(status ? { status } : {}),
+    }),
+    [search, status]
+  )
 
   const updateMutation = useMutation({
     mutationFn: ({
@@ -109,7 +117,7 @@ export function ConsultationsPage() {
         </div>
         <Button
           variant="outline"
-          onClick={() => void consultationService.export(params)}
+          onClick={() => void consultationService.export(exportParams)}
           className="shrink-0"
         >
           <Download className="size-4" />
@@ -176,6 +184,15 @@ export function ConsultationsPage() {
                   <td colSpan={6} className="h-48 text-center text-muted-foreground">
                     <LoaderCircle className="mx-auto mb-2 size-5 animate-spin" />
                     Đang tải danh sách...
+                  </td>
+                </tr>
+              ) : isError ? (
+                <tr>
+                  <td colSpan={6} className="h-48 text-center text-muted-foreground">
+                    <p className="text-sm font-medium text-destructive">Không thể tải danh sách yêu cầu tư vấn.</p>
+                    <Button variant="outline" size="sm" className="mt-3" onClick={() => void refetch()}>
+                      Thử lại
+                    </Button>
                   </td>
                 </tr>
               ) : !data?.items.length ? (
@@ -333,11 +350,13 @@ export function ConsultationsPage() {
 }
 
 function formatDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
   return new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(value))
+  }).format(date)
 }

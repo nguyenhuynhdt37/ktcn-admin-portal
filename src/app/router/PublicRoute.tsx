@@ -1,16 +1,19 @@
 import { Navigate, useLocation } from 'react-router'
-import { useAuthStore } from '@/stores/authStore'
+import { isAdminUser, useAuthStore } from '@/stores/authStore'
+import { toSafeInternalPath } from '@/shared/utils/security'
 
 interface PublicRouteProps {
   children: React.ReactNode
 }
 
 export function PublicRoute({ children }: PublicRouteProps) {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
   const location = useLocation()
 
   if (isAuthenticated) {
-    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard'
+    const defaultPath = isAdminUser(user) ? '/dashboard' : '/articles'
+    const rawFrom = (location.state as { from?: { pathname: string } })?.from?.pathname
+    const from = toSafeInternalPath(rawFrom, defaultPath)
     return <Navigate to={from} replace />
   }
 
